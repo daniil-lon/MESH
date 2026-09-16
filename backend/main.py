@@ -211,27 +211,27 @@ async def index_html():
 
 @app.get("/css/{file_path:path}")
 async def serve_css(file_path: str):
-    return FileResponse(BASE_DIR / "css" / file_path)
+    return FileResponse(BASE_DIR / "css" / file_path, headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/js/{file_path:path}")
 async def serve_js(file_path: str):
-    return FileResponse(BASE_DIR / "js" / file_path)
+    return FileResponse(BASE_DIR / "js" / file_path, headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/icons/{file_path:path}")
 async def serve_icons(file_path: str):
-    return FileResponse(BASE_DIR / "icons" / file_path)
+    return FileResponse(BASE_DIR / "icons" / file_path, headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/manifest.json")
 async def serve_manifest():
-    return FileResponse(BASE_DIR / "manifest.json")
+    return FileResponse(BASE_DIR / "manifest.json", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/sw.js")
 async def serve_sw():
-    return FileResponse(BASE_DIR / "sw.js")
+    return FileResponse(BASE_DIR / "sw.js", headers={"Cache-Control": "public, max-age=0, must-revalidate"})
 
 
 @app.get("/api/health")
@@ -1300,10 +1300,12 @@ async def get_grades_export(request: Request):
     writer.writerow(["Всего оценок", data.get("total", "")])
     content = "\ufeff" + buf.getvalue()
     fname = f"grades_{student.get('login', 'student')}_{datetime.now().strftime('%Y%m%d')}.csv"
+    from urllib.parse import quote
+    fname_enc = quote(fname)
     return Response(
         content=content,
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+        headers={"Content-Disposition": f"attachment; filename=grades.csv; filename*=UTF-8''{fname_enc}"},
     )
 
 
@@ -1352,10 +1354,12 @@ async def teacher_journal_export(request: Request):
         writer.writerow([s.get("fio", ""), s.get("login", "")] + [avg] + by_subj)
     content = "\ufeff" + buf.getvalue()
     fname = f"journal_{group}_{datetime.now().strftime('%Y%m%d')}.csv"
+    from urllib.parse import quote
+    fname_enc = quote(fname)
     return Response(
         content=content,
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+        headers={"Content-Disposition": f"attachment; filename=journal.csv; filename*=UTF-8''{fname_enc}"},
     )
 
 

@@ -430,6 +430,24 @@ def test_teacher_multi_group(client):
     assert bad.json()["group"] == "1ГД-2-11-26"
 
 
+def test_teacher_journal_export_and_grades_export(client):
+    t = client.post("/api/auth/login", json={"login": "teacher02", "password": "teacher02"}).json()
+    h = {"Authorization": f"Bearer {t['access_token']}"}
+    csv1 = client.get("/api/teacher/journal/export", headers=h)
+    assert csv1.status_code == 200
+    assert "text/csv" in csv1.headers["content-type"]
+    csv2 = client.get("/api/teacher/journal/export", headers=h, params={"group": "1ИС-26"})
+    assert csv2.status_code == 200
+    assert "ФИО" in csv2.text
+
+    stud = client.post("/api/auth/login", json={"login": "abdulkadirova0001", "password": "abur2wza9z"}).json()
+    gh = {"Authorization": f"Bearer {stud['access_token']}"}
+    gcsv = client.get("/api/grades/export", headers=gh)
+    assert gcsv.status_code == 200
+    assert "text/csv" in gcsv.headers["content-type"]
+    assert "Математика" in gcsv.text
+
+
 def test_versions_roundtrip(client):
     h = {"Authorization": "Bearer 1111"}
     client.put("/api/admin/file/faq", headers=h, json={"content": [{"q": "до", "a": "v1"}]})

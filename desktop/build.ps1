@@ -5,6 +5,7 @@ Set-Location $root
 $py = "py"
 & $py -3 -m pip install --quiet pyinstaller pywebview pillow
 if (-not $?) { throw "pip install failed" }
+& $py -3 -X utf8 "$root\tools\minify_css.py"
 
 $stage = Join-Path $env:TEMP "mesh_build_stage"
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }

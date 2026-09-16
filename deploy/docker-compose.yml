@@ -1,16 +1,14 @@
 services:
   app:
-    build: .
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
     container_name: mesh-college
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/data:/app/backend/data:rw
+      - ../backend/data:/app/backend/data:rw
+      - ../uploads:/app/uploads:rw
     restart: unless-stopped
     environment:
       - ADMIN_TOKEN=${ADMIN_TOKEN:-1111}
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/news')"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
