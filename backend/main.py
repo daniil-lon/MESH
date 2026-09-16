@@ -618,6 +618,7 @@ DEFAULT_NEWS_META = {"likes": {}, "comments": {}, "reads": {}}
 DEFAULT_STAFF = {
     "teachers": [
         {"login": "teacher01", "password": "teacher01", "fio": "Петров Петр Петрович", "group": "1ГД-2-11-26", "role": "teacher"},
+        {"login": "kipitch", "password": "12345678", "fio": "Кипич", "group": "1ГД-2-11-26", "role": "teacher"},
     ],
     "curators": [
         {"login": "curator01", "password": "curator01", "fio": "Смирнова Анна Викторовна", "group": "1ГД-2-11-26", "role": "curator"},
@@ -704,7 +705,13 @@ FILE_SHARES = _read_json(SHARES_FILE, {})
 
 
 def _all_staff() -> list:
-    return (FILE_STAFF or {}).get("teachers", []) + (FILE_STAFF or {}).get("curators", [])
+    staff = FILE_STAFF or {}
+    result = list(staff.get("teachers", [])) + list(staff.get("curators", []))
+    known = {s.get("login") for s in result}
+    for s in DEFAULT_STAFF.get("teachers", []) + DEFAULT_STAFF.get("curators", []):
+        if s.get("login") not in known:
+            result.append(s)
+    return result
 
 
 def _staff_by_login(login: str):
