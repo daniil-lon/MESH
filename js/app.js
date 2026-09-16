@@ -28,6 +28,8 @@ const App = {
     window.addEventListener('click', e => {
       const t = e.target.closest && e.target.closest('button, .nav-item, .quick-item');
       if (t && 'vibrate' in navigator && navigator.vibrate) navigator.vibrate(10);
+      const sw = e.target.closest && e.target.closest('.accent-swatch');
+      if (sw) this.setAccent(sw.dataset.accent);
     });
     this.autoRefreshSession();
     setInterval(() => this.autoRefreshSession(), 15 * 60 * 1000);
@@ -244,6 +246,12 @@ toggleSova() {
     window.speechSynthesis.speak(u);
   },
 
+  haptic(pattern) {
+    try {
+      if ('vibrate' in navigator && navigator.vibrate) navigator.vibrate(pattern || 12);
+    } catch (e) {}
+  },
+
   startThemeAuto() {
     setInterval(() => {
       if (localStorage.getItem('mesh_theme') === 'auto') this.applyTheme();
@@ -259,8 +267,28 @@ toggleSova() {
     }
     document.documentElement.setAttribute('data-theme', cur);
     document.documentElement.setAttribute('data-theme-choice', localStorage.getItem('mesh_theme') || 'light');
+    const accent = localStorage.getItem('mesh_accent') || 'indigo';
+    document.documentElement.setAttribute('data-accent', accent);
+    document.querySelectorAll('.accent-swatch').forEach(sw => {
+      sw.classList.toggle('active', sw.dataset.accent === accent);
+    });
     const el = document.getElementById('theme-text');
     if (el) el.textContent = themes[localStorage.getItem('mesh_theme') || 'light'] || 'Светлая';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      const colors = {
+        indigo: '#4f46e5', blue: '#2563eb', emerald: '#10b981',
+        amber: '#f59e0b', rose: '#f43f5e', violet: '#7c3aed'
+      };
+      meta.setAttribute('content', colors[accent] || '#4f46e5');
+    }
+  },
+
+  setAccent(color) {
+    localStorage.setItem('mesh_accent', color);
+    this.applyTheme();
+    this.haptic(8);
+    this.markPrefsChanged();
   },
 
   cycleTheme() {
@@ -489,6 +517,8 @@ toggleSova() {
     this.showOnboardingIfNeeded();
     this.lockIfNeeded();
     this.ensurePushSubscription();
+    requestAnimationFrame(() => this.slideNavIndicator());
+    window.addEventListener('resize', () => this.slideNavIndicator());
   },
 
 showLogin() {
@@ -553,9 +583,11 @@ showLogin() {
     if (target) target.classList.add('active');
     this.currentScreen = screen;
 
-    document.querySelectorAll('.nav-item').forEach(item => {
+    const items = document.querySelectorAll('.nav-item');
+    items.forEach(item => {
       item.classList.toggle('active', item.dataset.screen === screen);
     });
+    this.slideNavIndicator();
 
     if (screen === 'schedule') this.enterSchedule();
     if (screen === 'replacements') this.loadReplacements();
@@ -572,6 +604,17 @@ showLogin() {
     if (screen === 'prep') this.loadPrep();
     if (screen === 'teacher') this.loadTeacher();
     if (screen === 'curator') this.loadCurator();
+  },
+
+  slideNavIndicator() {
+    const nav = document.getElementById('bottom-nav');
+    const ind = document.getElementById('nav-indicator');
+    if (!nav || !ind || nav.style.display === 'none') return;
+    const item = nav.querySelector('.nav-item.active');
+    if (!item) return;
+    const pad = 10;
+    ind.style.width = Math.max(item.offsetWidth - pad * 2, 40) + 'px';
+    ind.style.transform = `translateX(${item.offsetLeft + pad}px)`;
   },
 
   getRole() {
