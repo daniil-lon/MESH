@@ -870,6 +870,25 @@ def _hash_admin_key(password: str, salt: str) -> str:
     return hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
 
 
+def _hash_password(password: str, salt: str = "") -> str:
+    salt = salt or secrets.token_hex(8)
+    digest = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
+    return f"$sha256${salt}${digest}"
+
+
+def _check_password(stored, provided: str) -> bool:
+    if isinstance(stored, str) and stored.startswith("$sha256$"):
+        try:
+            parts = stored.split("$")
+            salt, digest = parts[2], parts[3]
+            return hmac.compare_digest(
+                hashlib.sha256((salt + provided).encode("utf-8")).hexdigest(), digest
+            )
+        except Exception:
+            return False
+    return stored == provided
+
+
 def _check_admin_token(token: str) -> bool:
     if ADMIN_PASS_FILE.exists():
         try:
@@ -981,14 +1000,14 @@ def _make_token(sub: str, role: str = "student") -> str:
 async def api_login(req: LoginRequest, request: Request):
     _check_login_rate(request)
     student = _student_by_login(req.login.strip())
-    if student and student.get("password") == req.password:
+    if student and _check_password(student.get("password"), req.password):
         SESSION_USERS[student["fio"]] = student
         token = _make_token(student["fio"])
         _log_login(student["fio"], "student", request)
         return {"access_token": token, "name": student["fio"], "group": student["group"], "role": "student"}
 
     staff = _staff_by_login(req.login.strip())
-    if staff and staff.get("password") == req.password:
+    if staff and _check_password(staff.get("password"), req.password):
         token = _make_token(staff["fio"], staff.get("role", "teacher"))
         _log_login(staff["fio"], staff.get("role", "teacher"), request)
         return {"access_token": token, "name": staff["fio"], "group": staff.get("group", ""), "role": staff.get("role", "teacher")}
@@ -1887,7 +1906,7 @@ async def admin_reset_password(body: ResetPassword, request: Request):
     student = _student_by_login(body.login.strip())
     if not student:
         raise HTTPException(status_code=404, detail="Студент не найден")
-    student["password"] = body.password
+    student["password"] = _hash_password(body.password)
     _save_json(STUDENTS_FILE, STUDENTS)
     reload_accounts()
     _log_admin(f"Сброс пароля: {body.login}")
@@ -2096,11 +2115,11 @@ async def change_password(body: ChangePasswordBody, request: Request):
     person = identity["person"]
     if not person:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    if person.get("password") != body.current:
+    if not _check_password(person.get("password"), body.current):
         raise HTTPException(status_code=400, detail="Текущий пароль неверен")
     if not body.new_password or len(body.new_password) < 4:
         raise HTTPException(status_code=400, detail="Новый пароль слишком короткий")
-    person["password"] = body.new_password
+    person["password"] = _hash_password(body.new_password)
     if identity["role"] == "student":
         _save_json(STUDENTS_FILE, STUDENTS)
         reload_accounts()
