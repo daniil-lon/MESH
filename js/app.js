@@ -2615,9 +2615,20 @@ startBellCountdown(dayKey, bells) {
     if (container) this.showSkeleton('teacher-content');
     API.teacherAttendance().then(data => {
       if (!data) { if (container) container.innerHTML = '<div class="empty-state"><p>Нет данных</p></div>'; return; }
-      if (groupEl) groupEl.textContent = 'Группа ' + data.group;
+      if (data) {
+        this.teacherGroups = data.groups || (data.group ? [data.group] : []);
+        if (this.teacherGroups.length > 1 && !this.teacherGroup) this.teacherGroup = this.teacherGroups[0];
+      }
+      const groups = this.teacherGroups || (data ? [data.group] : []);
+      const groupSelector = groups.length > 1 ? `
+        <div class="field-label">Группа</div>
+        <select class="text-field" id="tg-select" onchange="App.switchTeacherGroup(this.value)">
+          ${groups.map(g => `<option value="${this.esc(g)}" ${g === data.group ? 'selected' : ''}>${this.esc(g)}</option>`).join('')}
+        </select>` : '';
+      if (groupEl) groupEl.textContent = 'Группа ' + (data && data.group ? data.group : '');
       const marks = data.days || [];
       if (container) container.innerHTML = `
+        ${groupSelector}
         <div class="attendance-summary">
           <div class="grade-stat"><div class="grade-stat-value">${data.attendance}%</div><div class="grade-stat-label">Посещаемость группы</div></div>
         </div>
@@ -2633,6 +2644,9 @@ startBellCountdown(dayKey, bells) {
         <div class="ticket-status" id="tea-status"></div>
         <div class="screen-title">Журнал оценок</div>
         <div class="sub-note">Выберите предмет и выставляйте оценки прямо в журнал группы.</div>
+        <div class="row-space-top">
+          <button class="btn-secondary profile-action-btn" onclick="App.exportJournal()">Скачать журнал (CSV)</button>
+        </div>
         <label class="field-label">Предмет</label>
         <select class="text-field" id="tj-subject" onchange="App.renderJournal()"></select>
         <div id="tj-rows"></div>
@@ -2653,13 +2667,16 @@ startBellCountdown(dayKey, bells) {
         const schedEl = document.getElementById('tea-schedule');
         if (!schedEl || !ts) return;
         const dayNames = { mon: 'Понедельник', tue: 'Вторник', wed: 'Среда', thu: 'Четверг', fri: 'Пятница', sat: 'Суббота' };
-        schedEl.innerHTML = (ts.days || []).map(d => `
-          <div class="sub-note">${dayNames[d.day] || d.day}</div>
-          ${(d.lessons || []).map(l => `
-            <div class="replacement-card">
-              <div class="replacement-subject">${l.subject}</div>
-              <div class="replacement-room">${l.room || ''}</div>
-            </div>`).join('')}`).join('') || '<div class="sub-note">Пар сегодня нет</div>';
+        const groups = ts.groups || [{ group: this.teacherGroup || (ts.group || ''), days: ts.days || [] }];
+        schedEl.innerHTML = groups.map(g => `
+          <div class="screen-title" style="font-size:14px;margin-top:6px">Расписание — ${this.esc(g.group)}</div>
+          ${(g.days || []).map(d => `
+            <div class="sub-note">${dayNames[d.day] || d.day}</div>
+            ${(d.lessons || []).map(l => `
+              <div class="replacement-card">
+                <div class="replacement-subject">${l.subject}</div>
+                <div class="replacement-room">${l.room || ''}</div>
+              </div>`).join('')}`).join('') || '<div class="sub-note">Пар сегодня нет</div>'}`).join('');
       });
       this.loadTeacherHomework();
     });
@@ -2774,6 +2791,29 @@ startBellCountdown(dayKey, bells) {
     const vals = marks.filter(m => m.subject === subject).map(m => Number(m.value)).filter(v => v >= 1 && v <= 5);
     if (!vals.length) return '';
     return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+  },
+
+  switchTeacherGroup(group) {
+    this.teacherGroup = group;
+    this.loadTeacher();
+  },
+
+  exportJournal() {
+    const a = document.createElement('a');
+    a.href = '/api/teacher/journal/export' + API.teacherGroupQS();
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  },
+
+  exportGrades() {
+    const a = document.createElement('a');
+    a.href = '/api/grades/export';
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   },
 
   teacherPutGrade(btn) {

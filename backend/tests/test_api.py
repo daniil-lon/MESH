@@ -393,7 +393,7 @@ def test_curator_announce_and_teacher_schedule(client):
     t = client.post("/api/auth/login", json={"login": "teacher01", "password": "teacher01"}).json()
     teacher = client.get("/api/teacher/schedule", headers={"Authorization": f"Bearer {t['access_token']}"})
     assert teacher.status_code == 200
-    assert teacher.json()["group"]
+    assert teacher.json()["groups"]
 
     c = client.post("/api/auth/login", json={"login": "curator01", "password": "curator01"}).json()
     ann = client.post("/api/curator/announce",
@@ -406,6 +406,28 @@ def test_curator_announce_and_teacher_schedule(client):
     student = auth(client)
     visible = client.get("/api/news", headers={"Authorization": f"Bearer {student}"}).json()
     assert any(n["id"] == top["id"] for n in visible)
+
+
+def test_teacher_multi_group(client):
+    t = client.post("/api/auth/login", json={"login": "teacher02", "password": "teacher02"}).json()
+    assert t["groups"] == ["1ГД-2-11-26", "1ИС-26"]
+    h = {"Authorization": f"Bearer {t['access_token']}"}
+
+    j = client.get("/api/teacher/journal", headers=h)
+    assert j.status_code == 200
+    assert j.json()["group"] == "1ГД-2-11-26"
+
+    j2 = client.get("/api/teacher/journal", headers=h, params={"group": "1ИС-26"})
+    assert j2.status_code == 200
+    assert j2.json()["group"] == "1ИС-26"
+
+    att = client.get("/api/teacher/attendance", headers=h, params={"group": "1ИС-26"})
+    assert att.status_code == 200
+    assert att.json()["group"] == "1ИС-26"
+
+    bad = client.get("/api/teacher/journal", headers=h, params={"group": "1ХХ-99"})
+    assert bad.status_code == 200
+    assert bad.json()["group"] == "1ГД-2-11-26"
 
 
 def test_versions_roundtrip(client):

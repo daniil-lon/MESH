@@ -23,7 +23,13 @@ load_dotenv()
 
 BASE_DIR = Path(os.getenv("MESH_BASE_DIR") or Path(__file__).resolve().parent.parent)
 
-app = FastAPI(title="IT Москва Колледж API", version="2.0.0")
+app = FastAPI(
+    title="IT Москва Колледж API",
+    version="2.1.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
@@ -34,9 +40,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
-
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -231,6 +234,31 @@ async def serve_sw():
     return FileResponse(BASE_DIR / "sw.js")
 
 
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "ok",
+        "version": "2.1.0",
+        "uptime": time.time() - _start_time,
+        "students_count": len(STUDENTS),
+        "staff_count": len(_all_staff()),
+        "data_dir": str(DATA_DIR),
+    }
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    _log_admin(f"Unhandled error: {type(exc).__name__}: {exc} [path={request.url.path}]")
+    return Response(
+        content=json.dumps({"detail": "Internal server error"}),
+        status_code=500,
+        media_type="application/json",
+    )
+
+
+_start_time = time.time()
+
+
 @app.get("/admin.html")
 async def serve_admin():
     return FileResponse(BASE_DIR / "admin.html",
@@ -259,6 +287,31 @@ SESSION_USERS: Dict[str, dict] = {}
 
 DATA_DIR = Path(os.getenv("MESH_DATA_DIR") or (BASE_DIR / "backend" / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _load_or_create_secret_key() -> str:
+    env_key = os.getenv("SECRET_KEY")
+    if env_key and env_key != "your-secret-key-change-in-production":
+        return env_key
+    key_file = DATA_DIR / ".secret_key"
+    try:
+        if key_file.exists():
+            saved = key_file.read_text(encoding="utf-8").strip()
+            if len(saved) >= 32:
+                return saved
+    except Exception:
+        pass
+    new_key = secrets.token_hex(32)
+    try:
+        key_file.write_text(new_key, encoding="utf-8")
+    except Exception:
+        pass
+    return new_key
+
+
+SECRET_KEY = _load_or_create_secret_key()
+
+
 NEWS_FILE = DATA_DIR / "news.json"
 REPLACEMENTS_FILE = DATA_DIR / "replacements.json"
 EXAMS_FILE = DATA_DIR / "exams.json"
@@ -619,6 +672,7 @@ DEFAULT_STAFF = {
     "teachers": [
         {"login": "teacher01", "password": "teacher01", "fio": "Петров Петр Петрович", "group": "1ГД-2-11-26", "role": "teacher"},
         {"login": "kipitch", "password": "12345678", "fio": "Кипич", "group": "1ГД-2-11-26", "role": "teacher"},
+        {"login": "teacher02", "password": "teacher02", "fio": "Сидорова Елена Викторовна", "groups": ["1ГД-2-11-26", "1ИС-26"], "role": "teacher"},
     ],
     "curators": [
         {"login": "curator01", "password": "curator01", "fio": "Смирнова Анна Викторовна", "group": "1ГД-2-11-26", "role": "curator"},
@@ -1010,7 +1064,7 @@ async def api_login(req: LoginRequest, request: Request):
     if staff and _check_password(staff.get("password"), req.password):
         token = _make_token(staff["fio"], staff.get("role", "teacher"))
         _log_login(staff["fio"], staff.get("role", "teacher"), request)
-        return {"access_token": token, "name": staff["fio"], "group": staff.get("group", ""), "role": staff.get("role", "teacher")}
+        return {"access_token": token, "name": staff["fio"], "group": staff.get("group", ""), "groups": _staff_groups(staff), "role": staff.get("role", "teacher")}
 
     raise HTTPException(status_code=401, detail="Неверный логин или пароль")
 
@@ -1139,6 +1193,24 @@ def _group_grade_store(group: str) -> dict:
     return {}
 
 
+def _staff_groups(person: dict) -> list:
+    groups = person.get("groups")
+    if isinstance(groups, list) and groups:
+        return [str(g) for g in groups]
+    grp = person.get("group", "")
+    return [grp] if grp else []
+
+
+def _pick_group(request: Request, person: dict, login: str = "") -> str:
+    allowed = _staff_groups(person)
+    q = (request.query_params.get("group") or "").strip()
+    if q and q in allowed:
+        return q
+    if allowed:
+        return allowed[0]
+    return login
+
+
 def _student_fio(login: str) -> str:
     s = next((x for x in STUDENTS if x.get("login") == login), None)
     return (s or {}).get("fio", login)
@@ -1211,12 +1283,36 @@ async def get_grades(request: Request):
     }
 
 
+@app.get("/api/grades/export")
+async def get_grades_export(request: Request):
+    import csv
+    import io as _io
+    student = _student_from_request(request)
+    data = await get_grades(request)
+    buf = _io.StringIO()
+    writer = csv.writer(buf, delimiter=";")
+    writer.writerow(["Предмет", "Оценки", "Средний"])
+    for s in data.get("subjects", []):
+        vals = ", ".join(str(m["value"]) for m in s.get("marks", []))
+        writer.writerow([s.get("name", ""), vals, s.get("average", "")])
+    writer.writerow([])
+    writer.writerow(["Итоговый средний", data.get("average", "")])
+    writer.writerow(["Всего оценок", data.get("total", "")])
+    content = "\ufeff" + buf.getvalue()
+    fname = f"grades_{student.get('login', 'student')}_{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
 @app.get("/api/teacher/journal")
 async def teacher_journal(request: Request):
     identity = _identity(request)
     if not identity or identity["role"] != "teacher":
         raise HTTPException(status_code=403, detail="Доступ только преподавателю")
-    group = identity["person"].get("group", "")
+    group = _pick_group(request, identity["person"])
     store = _group_grade_store(group)
     students = []
     for s in STUDENTS:
@@ -1227,7 +1323,40 @@ async def teacher_journal(request: Request):
             "fio": s.get("fio", ""),
             "marks": _grade_list_view(store.get(s.get("login"), [])),
         })
-    return {"group": group, "subjects": _group_taught_subjects(group), "students": students}
+    return {"group": group, "groups": _staff_groups(identity["person"]), "subjects": _group_taught_subjects(group), "students": students}
+
+
+@app.get("/api/teacher/journal/export")
+async def teacher_journal_export(request: Request):
+    identity = _identity(request)
+    if not identity or identity["role"] != "teacher":
+        raise HTTPException(status_code=403, detail="Доступ только преподавателю")
+    group = _pick_group(request, identity["person"])
+    store = _group_grade_store(group)
+    students = [s for s in STUDENTS if s.get("group") == group]
+    subjects = _group_taught_subjects(group)
+    header = ["ФИО", "Логин"] + ["Средний"] + subjects
+    rows = []
+    import csv
+    import io as _io
+    buf = _io.StringIO()
+    writer = csv.writer(buf, delimiter=";")
+    writer.writerow(header)
+    for s in students:
+        marks = store.get(s.get("login"), [])
+        avg = round(sum(m.get("value", 0) for m in marks) / len(marks), 2) if marks else ""
+        by_subj = []
+        for subj in subjects:
+            vals = [m.get("value") for m in marks if m.get("subject") == subj]
+            by_subj.append(round(sum(vals) / len(vals), 2) if vals else "")
+        writer.writerow([s.get("fio", ""), s.get("login", "")] + [avg] + by_subj)
+    content = "\ufeff" + buf.getvalue()
+    fname = f"journal_{group}_{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
 
 
 @app.post("/api/teacher/journal/grade")
@@ -1235,7 +1364,7 @@ async def teacher_add_grade(body: TeacherGradeBody, request: Request):
     identity = _identity(request)
     if not identity or identity["role"] != "teacher":
         raise HTTPException(status_code=403, detail="Доступ только преподавателю")
-    group = identity["person"].get("group", "")
+    group = _pick_group(request, identity["person"])
     body_subject = body.subject.strip() or "Математика"
     if not (1 <= int(body.value) <= 5):
         raise HTTPException(status_code=400, detail="Оценка должна быть от 1 до 5")
@@ -1275,7 +1404,7 @@ async def teacher_homework(request: Request):
     identity = _identity(request)
     if not identity or identity["role"] != "teacher":
         raise HTTPException(status_code=403, detail="Доступ только преподавателю")
-    group = identity["person"].get("group", "")
+    group = _pick_group(request, identity["person"])
     teacher_subjects = set(_group_taught_subjects(group))
     items = []
     for i, hw in enumerate(FILE_HOMEWORK or []):
@@ -1298,7 +1427,7 @@ async def teacher_homework(request: Request):
         "login": s.get("login", ""),
         "fio": s.get("fio", ""),
     } for s in STUDENTS if s.get("group") == group]
-    return {"group": group, "items": items, "students": students}
+    return {"group": group, "groups": _staff_groups(identity["person"]), "items": items, "students": students}
 
 
 @app.post("/api/teacher/homework/check")
@@ -2137,9 +2266,9 @@ async def teacher_attendance(request: Request):
     identity = _identity(request)
     if not identity or identity["role"] != "teacher":
         raise HTTPException(status_code=403, detail="Доступ только преподавателю")
-    group = identity["person"].get("group", "")
+    group = _pick_group(request, identity["person"])
     percent, days = _compute_attendance(group)
-    return {"group": group, "attendance": percent, "days": [d["date"] for d in days[-10:]]}
+    return {"group": group, "groups": _staff_groups(identity["person"]), "attendance": percent, "days": [d["date"] for d in days[-10:]]}
 
 
 @app.put("/api/teacher/attendance")
@@ -2147,7 +2276,7 @@ async def teacher_attendance_save(body: AttendanceMarkBody, request: Request):
     identity = _identity(request)
     if not identity or identity["role"] != "teacher":
         raise HTTPException(status_code=403, detail="Доступ только преподавателю")
-    group = identity["person"].get("group", "")
+    group = _pick_group(request, identity["person"])
     valid = {"present", "late", "absent"}
     lessons = []
     for lesson in body.lessons or []:
@@ -2623,16 +2752,19 @@ async def teacher_schedule(request: Request):
     identity = _identity(request)
     if not identity or identity["role"] != "teacher":
         raise HTTPException(status_code=403, detail="Доступ только преподавателю")
-    group = identity["person"].get("group", "")
+    groups = _staff_groups(identity["person"])
     fio = identity["person"].get("fio", "")
     last = (fio.split()[0] if fio else "").lower()
-    days = []
-    for day_key in ("mon", "tue", "wed", "thu", "fri", "sat"):
-        lessons = schedule_subjects(day_key, group) or DAY_SUBJECTS_DEFAULT.get(day_key, [])
-        mine = [l for l in (lessons or []) if not last or str(l.get("teacher", "")).lower().startswith(last)]
-        if mine:
-            days.append({"day": day_key, "lessons": mine})
-    return {"group": group, "fio": fio, "days": days}
+    result_groups = []
+    for g in groups:
+        days = []
+        for day_key in ("mon", "tue", "wed", "thu", "fri", "sat"):
+            lessons = schedule_subjects(day_key, g) or DAY_SUBJECTS_DEFAULT.get(day_key, [])
+            mine = [l for l in (lessons or []) if not last or str(l.get("teacher", "")).lower().startswith(last)]
+            if mine:
+                days.append({"day": day_key, "lessons": mine})
+        result_groups.append({"group": g, "days": days})
+    return {"groups": result_groups, "fio": fio}
 
 
 # --- Логирование ошибок фронтенда ---

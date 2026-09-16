@@ -293,9 +293,14 @@ const API = {
     return this.postJSON('/me/password', { current, new_password: newPassword });
   },
 
+  teacherGroupQS() {
+    const g = (typeof App !== 'undefined' && App.teacherGroup) || '';
+    return g ? `?group=${encodeURIComponent(g)}` : '';
+  },
+
   teacherAttendance() {
     const token = Auth.getToken();
-    return fetch(`${this.BASE_URL}/teacher/attendance`, {
+    return fetch(`${this.BASE_URL}/teacher/attendance${this.teacherGroupQS()}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     }).then(r => r.json()).catch(() => null);
   },
@@ -431,7 +436,7 @@ const API = {
 
   teacherJournal() {
     const token = Auth.getToken();
-    return fetch(`${this.BASE_URL}/teacher/journal`, {
+    return fetch(`${this.BASE_URL}/teacher/journal${this.teacherGroupQS()}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     }).then(r => r.json()).catch(() => null);
   },
@@ -505,7 +510,7 @@ const API = {
 
   teacherHomework() {
     const token = Auth.getToken();
-    return fetch(`${this.BASE_URL}/teacher/homework`, { headers: { 'Authorization': `Bearer ${token}` } })
+    return fetch(`${this.BASE_URL}/teacher/homework${this.teacherGroupQS()}`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(r => r.json()).catch(() => null);
   },
 
