@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IT Москва Колледж">
+  <meta name="theme-color" content="#4f46e5">
+  <title>IT Москва Колледж</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/touch-icon-180.png">
+  <link rel="stylesheet" href="css/style.min.css">
+</head>
+<body>
+
+  <div id="ptr" class="ptr"></div>
+
+  <!-- ЭКРАН ВХОДА -->
+  <div id="screen-login" class="screen active">
+    <div class="login-container">
+      <div class="login-logo">
+        <div class="logo-icon">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <rect width="64" height="64" rx="16" fill="#4f46e5"/>
+            <path d="M20 24h24v4H20zM20 32h18v4H20zM20 40h22v4H20z" fill="white"/>
+          </svg>
+        </div>
+        <h1>IT Москва Колледж</h1>
+        <p class="login-subtitle">Расписание, оценки и домашние задания</p>
+      </div>
+      <form id="login-form" class="login-form" onsubmit="return Auth.submitLogin(event)">
+        <div class="login-field">
+          <label for="login-username">Логин</label>
+          <input type="text" id="login-username" autocomplete="username" placeholder="Например, ivanov0001" required>
+        </div>
+        <div class="login-field">
+          <label for="login-password">Пароль</label>
+          <input type="password" id="login-password" autocomplete="current-password" placeholder="Пароль из выданного списка" required>
+        </div>
+        <div id="login-error" class="login-error"></div>
+        <button type="submit" id="btn-login-submit" class="btn-login">
+          <span>Войти</span>
+        </button>
+      </form>
+      <div id="saved-accounts"></div>
+      <p class="login-hint">Логин и пароль выдаются при зачислении</p>
+    </div>
+  </div>
+
+  <!-- ЭКРАН РАСПИСАНИЯ -->
+  <div id="screen-schedule" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Расписание</h2>
+          <div class="header-stream" id="stream-badge">
+            <span class="stream-dot"></span>
+            <span id="stream-text">Бета · Второй поток</span>
+          </div>
+        </div>
+        <button class="icon-btn" id="btn-today" onclick="App.navigateTo('today')" title="Мой день">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            <path d="M9 22V12h6v10"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btn-copy-schedule" onclick="App.copySchedule()" title="Скопировать расписание">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btn-toggle-bells" onclick="App.toggleBells()" title="Расписание звонков">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btn-export-calendar" onclick="App.exportCalendar()" title="Экспорт в календарь">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>
+          </svg>
+        </button>
+        <button class="icon-btn" onclick="App.speakSchedule()" title="Озвучить расписание">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14"/>
+          </svg>
+        </button>
+      </div>
+      <div class="header-date" id="current-date"></div>
+    </header>
+
+    <div id="bells-panel" class="bells-panel" style="display:none;"></div>
+
+    <div id="next-lesson-banner" class="next-lesson-banner"></div>
+
+    <div class="mode-segment">
+      <button class="mode-segment-btn active" data-mode="week" onclick="App.setScheduleMode('week')">Неделя</button>
+      <button class="mode-segment-btn" data-mode="session" onclick="App.setScheduleMode('session')">Сессия</button>
+    </div>
+
+    <div id="week-mode">
+      <div class="schedule-nav">
+        <button class="schedule-nav-btn" data-day="mon">ПН</button>
+        <button class="schedule-nav-btn" data-day="tue">ВТ</button>
+        <button class="schedule-nav-btn" data-day="wed">СР</button>
+        <button class="schedule-nav-btn" data-day="thu">ЧТ</button>
+        <button class="schedule-nav-btn" data-day="fri">ПТ</button>
+        <button class="schedule-nav-btn" data-day="sat">СБ</button>
+      </div>
+
+      <div class="screen-content" id="schedule-content">
+        <div class="lesson-card">
+          <div class="lesson-pair">1 пара</div>
+          <div class="lesson-time">
+            <span class="time-start">08:30</span>
+            <span class="time-separator">—</span>
+            <span class="time-end">10:00</span>
+          </div>
+          <div class="lesson-info">
+            <div class="lesson-subject">Математика</div>
+            <div class="lesson-teacher">Иванова И.И.</div>
+            <div class="lesson-room">Каб. 214</div>
+          </div>
+          <div class="lesson-type lesson-type--lection">Лекция</div>
+          <div class="lesson-transition">переход в 09:13</div>
+        </div>
+
+        <div class="lesson-card">
+          <div class="lesson-pair">2 пара</div>
+          <div class="lesson-time">
+            <span class="time-start">10:10</span>
+            <span class="time-separator">—</span>
+            <span class="time-end">11:40</span>
+          </div>
+          <div class="lesson-info">
+            <div class="lesson-subject">Информатика</div>
+            <div class="lesson-teacher">Петров П.П.</div>
+            <div class="lesson-room">Каб. 312</div>
+          </div>
+          <div class="lesson-type lesson-type--practice">Практика</div>
+          <div class="lesson-transition">переход в 10:53</div>
+        </div>
+
+        <div class="lesson-card">
+          <div class="lesson-pair">3 пара</div>
+          <div class="lesson-time">
+            <span class="time-start">12:10</span>
+            <span class="time-separator">—</span>
+            <span class="time-end">13:40</span>
+          </div>
+          <div class="lesson-info">
+            <div class="lesson-subject">Английский язык</div>
+            <div class="lesson-teacher">Смирнова А.В.</div>
+            <div class="lesson-room">Каб. 108</div>
+          </div>
+          <div class="lesson-type lesson-type--practice">Практика</div>
+          <div class="lesson-transition">переход в 12:53</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="session-mode" class="screen-content" style="display:none;">
+      <div class="exam-session-card">
+        <div class="exam-session-title" id="session-title">Зимняя сессия 2026/27</div>
+        <div class="exam-session-count" id="session-count">5 экзаменов</div>
+      </div>
+      <div id="exam-list"></div>
+      <div id="exam-extras"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН МОЙ ДЕНЬ -->
+  <div id="screen-today" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Мой день</h2>
+          <div class="header-date" id="today-date"></div>
+        </div>
+        <button class="icon-btn" onclick="App.navigateTo('schedule')" title="Назад">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="screen-content" id="today-content">
+      <div class="skeleton-block today-skeleton"></div>
+      <div class="skeleton-block today-skeleton"></div>
+      <div class="skeleton-block today-skeleton"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ПОРТФОЛИО -->
+  <div id="screen-portfolio" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Портфолио</h2>
+          <div class="header-date">Практика · курсовой · достижения</div>
+        </div>
+        <button class="icon-btn" onclick="App.navigateTo('profile')" title="Назад">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="screen-content">
+      <button class="btn-secondary profile-action-btn" onclick="App.printPortfolio()">🖨 Печать портфолио</button>
+      <div class="exam-session-card">
+        <div class="exam-session-title">Практика</div>
+        <div class="exam-session-count" id="portfolio-practice-count"></div>
+      </div>
+      <div id="portfolio-practice"></div>
+
+      <div class="exam-session-card">
+        <div class="exam-session-title">Курсовой проект</div>
+      </div>
+      <div id="portfolio-coursework"></div>
+
+      <div class="exam-session-card">
+        <div class="exam-session-title">Диплом</div>
+      </div>
+      <div id="portfolio-diploma"></div>
+
+      <div class="exam-session-card">
+        <div class="exam-session-title">Достижения и награды</div>
+      </div>
+      <div id="portfolio-achievements"></div>
+
+      <div class="screen-title">Обращения в деканат</div>
+
+      <div class="ticket-form">
+        <label class="field-label">Тема обращения</label>
+        <input class="text-field" id="ticket-topic" placeholder="Например: справка об обучении">
+        <label class="field-label">Текст</label>
+        <textarea class="text-field" id="ticket-text" placeholder="Опишите вопрос"></textarea>
+        <button class="btn-secondary" onclick="App.createTicket()">Отправить обращение</button>
+        <div class="ticket-status" id="ticket-status"></div>
+      </div>
+
+      <div id="tickets-list"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН УЧЕБНЫЕ МАТЕРИАЛЫ -->
+  <div id="screen-materials" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Учебные материалы</h2>
+          <div class="header-date">Материалы и словарь терминов</div>
+        </div>
+        <button class="icon-btn" onclick="App.navigateTo('profile')" title="Назад">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="screen-content" id="materials-content">
+      <div class="empty-state"><p>Загрузка…</p></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ВНЕУЧЕБКА -->
+  <div id="screen-extern" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Внеучебка</h2>
+          <div class="header-date">Кружки · находки · FAQ</div>
+        </div>
+        <button class="icon-btn" onclick="App.navigateTo('profile')" title="Назад">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="screen-content" id="extern-content">
+      <div class="empty-state"><p>Загрузка…</p></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ПОДГОТОВКА К СЕССИИ -->
+  <div id="screen-prep" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Подготовка к сессии</h2>
+          <div class="header-date">Чек-лист и таймер фокуса</div>
+        </div>
+        <button class="icon-btn" onclick="App.navigateTo('schedule')" title="Назад">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="screen-content" id="prep-content">
+      <div class="empty-state"><p>Загрузка…</p></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ПРЕПОДАВАТЕЛЯ -->
+  <div id="screen-teacher" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Преподаватель</h2>
+          <div class="header-date" id="teacher-group"></div>
+        </div>
+        <button class="icon-btn" onclick="App.navigateTo('profile')" title="Назад">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="screen-content" id="teacher-content">
+      <div class="empty-state"><p>Загрузка…</p></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН КУРАТОРА -->
+  <div id="screen-curator" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Куратор</h2>
+          <div class="header-date" id="curator-group"></div>
+        </div>
+        <button class="icon-btn" onclick="App.navigateTo('profile')" title="Назад">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="screen-content" id="curator-content">
+      <div class="empty-state"><p>Загрузка…</p></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ЗАМЕН -->
+  <div id="screen-replacements" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Замены</h2>
+          <div class="header-date" id="replacements-date"></div>
+        </div>
+      </div>
+    </header>
+    <div class="screen-content" id="replacements-content"></div>
+  </div>
+
+  <!-- ЭКРАН НОВОСТЕЙ -->
+  <div id="screen-news" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Новости</h2>
+        </div>
+      </div>
+    </header>
+    <div class="screen-content" id="news-content">
+      <div class="empty-state"><p>Загрузка…</p></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ОЦЕНОК -->
+  <div id="screen-grades" class="screen">
+    <header class="screen-header">
+      <h2>Оценки</h2>
+      <div class="header-period">Триместр 1</div>
+    </header>
+
+    <div class="screen-content">
+      <div class="grades-summary">
+        <div class="grade-stat">
+          <div class="grade-stat-value" id="avg-grade">4.2</div>
+          <div class="grade-stat-label">Средний балл</div>
+        </div>
+        <div class="grade-stat">
+          <div class="grade-stat-value" id="total-marks">47</div>
+          <div class="grade-stat-label">Всего оценок</div>
+        </div>
+      </div>
+
+      <div id="grade-rank-banner"></div>
+
+      <div id="target-calc"></div>
+
+      <div class="grades-chart-card">
+        <div class="grades-chart-title">Успеваемость по предметам</div>
+        <div id="grades-chart"></div>
+      </div>
+
+      <div class="grades-list" id="grades-list">
+        <div class="grade-item">
+          <div class="grade-subject">Математика</div>
+          <div class="grade-marks">
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-5">5</span>
+          </div>
+          <div class="grade-avg">4.8</div>
+        </div>
+
+        <div class="grade-item">
+          <div class="grade-subject">Информатика</div>
+          <div class="grade-marks">
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-5">5</span>
+          </div>
+          <div class="grade-avg">4.8</div>
+        </div>
+
+        <div class="grade-item">
+          <div class="grade-subject">Английский язык</div>
+          <div class="grade-marks">
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-3">3</span>
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-4">4</span>
+          </div>
+          <div class="grade-avg">4.0</div>
+        </div>
+
+        <div class="grade-item">
+          <div class="grade-subject">Русский язык</div>
+          <div class="grade-marks">
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-3">3</span>
+            <span class="mark mark-4">4</span>
+          </div>
+          <div class="grade-avg">3.8</div>
+        </div>
+
+        <div class="grade-item">
+          <div class="grade-subject">Физика</div>
+          <div class="grade-marks">
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-4">4</span>
+            <span class="mark mark-5">5</span>
+            <span class="mark mark-5">5</span>
+          </div>
+          <div class="grade-avg">4.7</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ДОМАШНИХ -->
+  <div id="screen-homework" class="screen">
+    <header class="screen-header">
+      <h2>Домашние задания</h2>
+      <div class="header-count" id="hw-count">4 задания</div>
+    </header>
+
+    <div class="screen-content" id="homework-content">
+      <div class="homework-card homework-card--urgent">
+        <div class="hw-badge">Завтра</div>
+        <div class="hw-subject">Математика</div>
+        <div class="hw-task">Решить задачи №12-18 стр. 45</div>
+        <div class="hw-deadline">11 сентября, 08:30</div>
+      </div>
+
+      <div class="homework-card homework-card--soon">
+        <div class="hw-badge">Через 2 дня</div>
+        <div class="hw-subject">Информатика</div>
+        <div class="hw-task">Написать программу на Python</div>
+        <div class="hw-deadline">12 сентября, 09:25</div>
+      </div>
+
+      <div class="homework-card">
+        <div class="hw-badge">Через 3 дня</div>
+        <div class="hw-subject">Английский язык</div>
+        <div class="hw-task">Выучить слова Unit 5, подготовить презентацию</div>
+        <div class="hw-deadline">13 сентября, 10:20</div>
+      </div>
+
+      <div class="homework-card">
+        <div class="hw-badge">Через 5 дней</div>
+        <div class="hw-subject">Физика</div>
+        <div class="hw-task">Лабораторная работа №3, отчёт</div>
+        <div class="hw-deadline">15 сентября, 11:15</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ПОСЕЩАЕМОСТИ -->
+  <div id="screen-attendance" class="screen">
+    <header class="screen-header">
+      <div class="header-row">
+        <div class="header-title-wrap">
+          <h2>Посещаемость</h2>
+          <div class="header-stream">
+            <span class="stream-dot"></span>
+            <span id="attendance-group"></span>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="App.navigateTo('profile')" title="Назад">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="screen-content" id="attendance-content">
+      <div class="empty-state"><p>Загрузка…</p></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ПРОФИЛЯ -->
+  <div id="screen-profile" class="screen">
+    <header class="screen-header">
+      <h2>Профиль</h2>
+    </header>
+
+    <div class="screen-content">
+      <div class="profile-card">
+        <div class="profile-avatar" id="profile-avatar">ИП</div>
+        <div class="profile-name" id="profile-name">Иванов Петр</div>
+        <div class="profile-class" id="profile-class">2 курс</div>
+      </div>
+
+      <div class="profile-info">
+        <div class="info-row">
+          <span class="info-label">Колледж</span>
+          <span class="info-value" id="info-school">ГБПОУ ИТ Москвы</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Специальность</span>
+          <span class="info-value" id="info-speciality">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Группа</span>
+          <span class="info-value" id="info-group">ИС-21</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Форма обучения</span>
+          <span class="info-value" id="info-forma">Бюджет</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Корпус</span>
+          <span class="info-value" id="info-address">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Куратор группы</span>
+          <span class="info-value" id="info-teacher">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Телефон куратора</span>
+          <span class="info-value"><a href="tel:" id="info-teacher-phone" style="color:var(--primary);text-decoration:none;">—</a></span>
+        </div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-attendance">94%</div>
+          <div class="stat-label">Посещаемость</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-homework">87%</div>
+          <div class="stat-label">Домашки сданы</div>
+        </div>
+      </div>
+
+      <div class="achievements-card">
+        <div class="achievements-title">Достижения</div>
+        <div class="achievements-row">
+          <div class="achievement-item">
+            <div class="achievement-value" id="ach-avg">4.2</div>
+            <div class="achievement-label">Средний балл</div>
+          </div>
+          <div class="achievement-item">
+            <div class="achievement-value" id="ach-scholarship">—</div>
+            <div class="achievement-label">Стипендия</div>
+          </div>
+          <div class="achievement-item">
+            <div class="achievement-value" id="ach-rating">—</div>
+            <div class="achievement-label">Место в группе</div>
+          </div>
+        </div>
+        <div class="achievement-badge" id="ach-badge"></div>
+      </div>
+
+      <div class="profile-actions">
+        <button class="quick-item" onclick="App.showStudentCard()">
+          <span class="quick-icon qc-indigo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3"/>
+              <path d="M3 9h18M9 21V9"/>
+            </svg>
+          </span>
+          <span class="quick-label">Электронный студенческий</span>
+        </button>
+        <button class="quick-item" onclick="App.toggleLogins()">
+          <span class="quick-icon qc-slate">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 21s-7-4.35-9-8.5C1.5 9 3.5 5 7.5 5 9.3 5 11 6.1 12 7.5 13 6.1 14.7 5 16.5 5c4 0 6 4 4.5 7.5C19 16.65 12 21 12 21z"/>
+            </svg>
+          </span>
+          <span class="quick-label">История входов</span>
+        </button>
+        <button class="quick-item" onclick="App.navigateTo('attendance')">
+          <span class="quick-icon qc-emerald">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+            </svg>
+          </span>
+          <span class="quick-label">Посещаемость</span>
+        </button>
+        <button class="quick-item" onclick="App.navigateTo('portfolio')">
+          <span class="quick-icon qc-violet">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>
+            </svg>
+          </span>
+          <span class="quick-label">Портфолио и практика</span>
+        </button>
+        <button class="quick-item" onclick="App.navigateTo('today')">
+          <span class="quick-icon qc-sky">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <path d="M9 22V12h6v10"/>
+            </svg>
+          </span>
+          <span class="quick-label">Мой день</span>
+        </button>
+        <button class="quick-item" onclick="App.navigateTo('materials')">
+          <span class="quick-icon qc-amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"/>
+            </svg>
+          </span>
+          <span class="quick-label">Учебные материалы</span>
+        </button>
+        <button class="quick-item" onclick="App.navigateTo('extern')">
+          <span class="quick-icon qc-rose">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+          </span>
+          <span class="quick-label">Внеучебка</span>
+        </button>
+        <button class="quick-item" onclick="App.navigateTo('prep')">
+          <span class="quick-icon qc-purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="13" r="8"/>
+              <path d="M12 9v4l2 2M9 2h6"/>
+            </svg>
+          </span>
+          <span class="quick-label">Подготовка к сессии</span>
+        </button>
+        <button class="quick-item" onclick="App.showSpravka()">
+          <span class="quick-icon qc-teal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+            </svg>
+          </span>
+          <span class="quick-label">Справка об обучении</span>
+        </button>
+        <button class="quick-item" onclick="App.showReport()">
+          <span class="quick-icon qc-orange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              <path d="M12 15v0"/>
+            </svg>
+          </span>
+          <span class="quick-label">Отчёт об успеваемости</span>
+        </button>
+        <button class="btn-secondary profile-action-btn" style="display:none" id="btn-teacher-panel" onclick="App.navigateTo('teacher')">
+          Отметка посещаемости
+        </button>
+        <button class="btn-secondary profile-action-btn" style="display:none" id="btn-curator-panel" onclick="App.navigateTo('curator')">
+          Дашборд группы
+        </button>
+      </div>
+
+      <div class="settings-card" id="logins-block" style="display:none">
+        <div class="settings-title">Мои входы</div>
+        <div id="logins-list"></div>
+      </div>
+
+  <div class="settings-card">
+    <div class="settings-title">Настройки</div>
+
+    <div class="setting-row">
+      <span class="setting-label">Тема оформления</span>
+      <button class="push-toggle" id="btn-theme" onclick="App.cycleTheme()">
+        <span id="theme-text">Светлая</span>
+      </button>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label">Пин-код при открытии</span>
+      <button class="push-toggle" id="btn-pin" onclick="App.togglePinLock()">
+        <span id="pin-text">Выключить</span>
+      </button>
+    </div>
+
+    <div class="setting-row" id="install-row" style="display:none;">
+      <span class="setting-label">Установить приложение</span>
+      <button class="push-toggle" id="btn-install" onclick="App.installApp()">
+        <span>Установить</span>
+      </button>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label">Напоминания о парах</span>
+      <button class="push-toggle" id="btn-push" onclick="App.togglePush()">
+        <span id="push-text">Включить</span>
+      </button>
+    </div>
+    <div class="setting-row" style="margin-top:6px">
+      <span class="setting-label" style="opacity:.6;font-weight:700">Типы уведомлений</span>
+      <span></span>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Замены на сегодня</span>
+      <button class="push-toggle" id="btn-nt-repl" onclick="App.toggleNotif('mesh_nt_repl')">
+        <span>Выкл</span>
+      </button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Новые оценки</span>
+      <button class="push-toggle" id="btn-nt-grade" onclick="App.toggleNotif('mesh_nt_grade')">
+        <span>Выкл</span>
+      </button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Дедлайны ДЗ</span>
+      <button class="push-toggle" id="btn-nt-hw" onclick="App.toggleNotif('mesh_nt_hw')">
+        <span>Выкл</span>
+      </button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Мои долги</span>
+      <button class="push-toggle" id="btn-nt-debts" onclick="App.toggleNotif('mesh_nt_debts')">
+        <span>Выкл</span>
+      </button>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label">Сменить пароль</span>
+      <button class="push-toggle" onclick="App.showPasswordModal()">
+        <span>Изменить</span>
+      </button>
+    </div>
+  </div>
+
+  <button class="btn-secondary" onclick="Auth.logout()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+        </svg>
+        Выйти из аккаунта
+      </button>
+    </div>
+  </div>
+
+  <!-- СТУДЕНЧЕСКИЙ (МОДАЛКА) -->
+  <div id="student-card-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)App.closeStudentCard()">
+    <div class="student-card">
+      <div class="student-card-head">
+        <div class="student-card-college">ГБПОУ ИТ Москвы</div>
+        <div class="student-card-title" id="sc-name">—</div>
+        <div class="student-card-meta" id="sc-group">—</div>
+        <div class="student-card-meta" id="sc-speciality">—</div>
+      </div>
+      <div class="student-card-qr" id="sc-qr"></div>
+      <div class="student-card-hint">Покажите этот код при входе в колледж</div>
+      <button class="btn-secondary modal-close" onclick="App.closeStudentCard()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- ОНБОРДИНГ -->
+  <div id="onboarding" class="onboarding" style="display:none;">
+    <div class="onboarding-card">
+      <h2 id="ob-title">Добро пожаловать!</h2>
+      <p id="ob-text">Здесь расписание, оценки, замены и новости колледжа.</p>
+      <div class="onboarding-dots">
+        <span class="ob-dot active" data-ob="0"></span>
+        <span class="ob-dot" data-ob="1"></span>
+        <span class="ob-dot" data-ob="2"></span>
+        <span class="ob-dot" data-ob="3"></span>
+      </div>
+      <button class="btn-secondary" id="ob-next" onclick="App.nextOnboarding()">Дальше</button>
+    </div>
+  </div>
+
+  <!-- ПИН-КОД -->
+  <div id="pin-overlay" class="onboarding" style="display:none;">
+    <div class="onboarding-card pin-card">
+      <h2>Введите пин-код</h2>
+      <div class="pin-inputs" id="pin-inputs"></div>
+      <p class="pin-error" id="pin-error"></p>
+      <div class="pin-pad" id="pin-pad"></div>
+    </div>
+  </div>
+
+  <!-- СМЕНА ПАРОЛЯ -->
+  <div id="password-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)App.closeModal(this)">
+    <div class="modal-card">
+      <h2>Смена пароля</h2>
+      <label class="field-label">Текущий пароль</label>
+      <input class="text-field" type="password" id="pw-current" autocomplete="current-password" placeholder="Текущий пароль">
+      <label class="field-label">Новый пароль</label>
+      <input class="text-field" type="password" id="pw-new" autocomplete="new-password" placeholder="Не менее 4 символов">
+      <label class="field-label">Повторите новый пароль</label>
+      <input class="text-field" type="password" id="pw-confirm" autocomplete="new-password" placeholder="Повторите новый пароль">
+      <div class="ticket-status" id="pw-status"></div>
+      <button class="btn-secondary profile-action-btn" onclick="App.submitPasswordChange()">Сохранить</button>
+      <button class="btn-secondary modal-close" onclick="App.closeModal(document.getElementById('password-modal'))">Отмена</button>
+    </div>
+  </div>
+
+  <!-- СПРАВКА / ОТЧЁТ -->
+  <div id="spravka-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)App.closeModal(this)">
+    <div class="modal-card spravka-card">
+      <h2 id="spravka-title">Справка об обучении</h2>
+      <div id="spravka-body" class="spravka-body"></div>
+      <button class="btn-secondary profile-action-btn" onclick="App.printSpravka()">Печать</button>
+      <button class="btn-secondary profile-action-btn" id="btn-share-report" style="display:none" onclick="App.shareReport()">🖇 Поделиться с родителями</button>
+      <button class="btn-secondary modal-close" onclick="App.closeModal(document.getElementById('spravka-modal'))">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="print-area" class="print-area"></div>
+
+  <!-- ПОИСК (CTRL+K) -->
+  <div id="search-overlay" class="search-overlay" style="display:none;" onclick="if(event.target===this)App.hideSearch()">
+    <div class="search-panel">
+      <div class="search-input-row">
+        <input id="search-input" class="text-field" placeholder="Поиск: предмет, новость, термин, раздел…">
+        <button class="icon-btn" onclick="App.hideSearch()" title="Закрыть (Esc)">✕</button>
+      </div>
+      <div id="search-results" class="search-results"></div>
+    </div>
+  </div>
+
+  <!-- ЧАТБОТ СОВА -->
+  <div id="sova-widget" class="sova-widget">
+    <button id="sova-fab" class="sova-fab" onclick="App.toggleSova()" title="Спросить Сову">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 100 100'><circle cx='50' cy='55' r='42' fill='%23f59e0b'/><circle cx='33' cy='45' r='6' fill='white'/><circle cx='67' cy='45' r='6' fill='white'/><circle cx='33' cy='45' r='3' fill='black'/><circle cx='67' cy='45' r='3' fill='black'/><path d='M40 70q10 10 20 0' stroke='%235b3b0a' stroke-width='4' fill='none' stroke-linecap='round'/><path d='M18 20q-2 12 6 16M82 20q2 12-6 16' stroke='%23f59e0b' stroke-width='7' fill='none' stroke-linecap='round'/></svg>" alt="Сова">
+    </button>
+    <div id="sova-panel" class="sova-panel" style="display:none;">
+      <div class="sova-head"><span>Сова · я помогу</span><button class="icon-btn sova-close" onclick="App.toggleSova()">✕</button></div>
+      <div id="sova-messages" class="sova-messages">
+        <div class="sova-msg">Угу! Спрашивай: «мои оценки», «что завтра», «мои долги», «контакты», «кружки».</div>
+      </div>
+      <div class="sova-input-row">
+        <input id="sova-input" class="text-field" placeholder="Напиши вопрос…" onkeydown="if(event.key==='Enter'){App.sovaAsk()}">
+        <button class="icon-btn sova-mic" id="sova-mic" onclick="App.toggleSovaMic()" title="Голосовой вопрос">🎤</button>
+        <button class="btn-primary chat-send" onclick="App.sovaAsk()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ОФФЛАЙН-БАННЕР -->
+  <div id="offline-banner" class="offline-banner" style="display:none;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.58 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/>
+    </svg>
+    <span>Нет соединения — показано сохранённое расписание</span>
+  </div>
+
+  <!-- НИЖНАЯ НАВИГАЦИЯ -->
+  <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+    <button class="nav-item active" data-screen="schedule" onclick="App.navigateTo('schedule')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <path d="M16 2v4M8 2v4M3 10h18"/>
+      </svg>
+      <span>Расписание</span>
+    </button>
+    <button class="nav-item" data-screen="replacements" onclick="App.navigateTo('replacements')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M16 3h5v5M8 3H3v5M21 3l-7 7M3 21l7-7M16 21h5v-5"/>
+      </svg>
+      <span>Замены</span>
+    </button>
+    <button class="nav-item" data-screen="news" onclick="App.navigateTo('news')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 6a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2h16a2 2 0 012 2zM2 6v14a2 2 0 002 2h16a2 2 0 002-2V6M2 10h20"/>
+      </svg>
+      <span>Новости</span>
+    </button>
+    <button class="nav-item" data-screen="grades" onclick="App.navigateTo('grades')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+      <span>Оценки</span>
+    </button>
+    <button class="nav-item" data-screen="homework" onclick="App.navigateTo('homework')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+      </svg>
+      <span>Домашки</span>
+    </button>
+    <button class="nav-item" data-screen="profile" onclick="App.navigateTo('profile')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>Профиль</span>
+    </button>
+  </nav>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

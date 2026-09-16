@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админка · IT Москва Колледж</title>
+  <style>:root {
+      --bg: #f2f5f9;
+      --bg2: #eaf0f7;
+      --bg-card: #ffffff;
+      --text: #1f242b;
+      --muted: #667085;
+      --border: #e3e8f0;
+      --border-strong: #c9d4e2;
+      --soft: #eef2f7;
+      --subtle: #f7f9fc;
+      --accent: #1a63c2;
+      --accent2: #2f80ed;
+      --accent3: #1558a8;
+      --accent-soft: #e8f1fc;
+      --danger-soft: #fdeaea;
+      --success-soft: #e7f6ee;
+      --grad: linear-gradient(90deg, #1a63c2, #2f80ed);
+      --grad2: linear-gradient(90deg, #1a63c2, #2f80ed);
+      --shadow: 0 4px 16px -6px rgba(31, 41, 55, .12), 0 1px 3px rgba(16, 24, 40, .06);
+    }
+    [data-theme="dark"] {
+      --bg: #12161f;
+      --bg2: #171c28;
+      --bg-card: #1c2331;
+      --text: #e6eaf1;
+      --muted: #94a0b4;
+      --border: #2a3344;
+      --border-strong: #3a4558;
+      --soft: #232b3a;
+      --subtle: rgba(255, 255, 255, .04);
+      --accent: #5b9bff;
+      --accent2: #7fb0ff;
+      --accent3: #4a8bf2;
+      --accent-soft: #22314b;
+      --danger-soft: #3a2024;
+      --success-soft: #1c3328;
+      --shadow: 0 6px 20px -8px rgba(0, 0, 0, .5);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background .3s, color .3s;
+    }
+
+    /* ---------- LOGIN (split) ---------- */
+    .login-wrap { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; }
+    .login-hero {
+      background: linear-gradient(150deg, #1558b8 0%, #1a63c2 55%, #2f80ed 100%);
+      color: #fff;
+      padding: 60px 55px;
+      display: flex; flex-direction: column; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .login-hero::before, .login-hero::after {
+      content: ''; position: absolute; border-radius: 50%; filter: blur(18px); opacity: .35;
+      background: rgba(255, 255, 255, .18);
+    }
+    .login-hero::before { width: 320px; height: 320px; top: -90px; right: -70px; }
+    .login-hero::after { width: 220px; height: 220px; bottom: -60px; left: -50px; }
+    .login-hero .mascot { font-size: 64px; margin-bottom: 18px; }
+    .login-hero h1 { font-size: 34px; font-weight: 800; letter-spacing: -.5px; }
+    .login-hero p { font-size: 15px; opacity: .9; max-width: 320px; margin: 12px 0 26px; line-height: 1.5; }
+    .login-feat { display: flex; flex-direction: column; gap: 12px; }
+    .login-feat span { font-size: 14px; opacity: .95; }
+    .login-shell { display: flex; align-items: center; justify-content: center; padding: 30px 20px; }
+    .login-box { width: 100%; max-width: 380px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 30px 28px; text-align: center; }
+    .login-box .logo { font-size: 40px; margin-bottom: 6px; }
+    .login-box h2 { font-size: 20px; margin-bottom: 4px; color: var(--accent); }
+    .login-box .lb-sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+    .login-box input { max-width: 320px; margin: 0 auto; text-align: center; }
+    .login-box button { width: 100%; }
+    @media (max-width: 820px) {
+      .login-wrap { grid-template-columns: 1fr; }
+      .login-hero { padding: 28px 26px; text-align: center; align-items: center; }
+      .login-hero .mascot { font-size: 46px; margin-bottom: 8px; }
+      .login-hero h1 { font-size: 24px; }
+      .login-hero p { margin: 10px 0 16px; }
+      .login-hero .login-feat { display: none; }
+      .login-shell { padding: 26px 16px; }
+    }
+
+    /* ---------- LAYOUT ---------- */
+    .layout { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
+    .sidebar {
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      padding: 20px 12px 22px;
+      position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column; gap: 2px;
+      overflow-y: auto;
+      color: var(--text);
+    }
+    .brand { padding: 4px 10px 14px; }
+    .brand .b-ico { font-size: 30px; display: block; margin-bottom: 2px; }
+    .brand b { font-size: 17px; display: block; letter-spacing: -.3px; color: var(--accent); }
+    .brand span { font-size: 12px; color: var(--muted); }
+    .nav-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 10px 10px 4px; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 11px;
+      width: 100%; padding: 10px 10px; margin: 1px 0;
+      background: transparent; color: var(--text);
+      border: none; border-radius: 9px; font-size: 14px; font-weight: 600;
+      cursor: pointer; text-align: left;
+      transition: background .15s;
+    }
+    .nav-btn:hover { background: var(--soft); color: var(--text); }
+    .nav-btn.active { background: var(--accent-soft); color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+    .nav-btn .ico { width: 22px; text-align: center; font-size: 16px; }
+    .nav-btn .cnt {
+      margin-left: auto; font-size: 11px; font-weight: 800;
+      background: var(--soft); color: var(--muted); border-radius: 10px; padding: 1px 7px;
+    }
+    .nav-btn.active .cnt { background: #fff; color: var(--accent); }
+    .sidebar .spacer { flex: 1; }
+    .sidebar .foot { padding: 8px 10px; color: var(--muted); font-size: 11px; }
+    .theme-btn {
+      width: 100%; margin: 4px 0; padding: 9px 10px;
+      background: var(--soft); color: var(--text);
+      border: 1px solid var(--border); border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 600;
+    }
+    .theme-btn:hover { background: var(--accent-soft); }
+    main { padding: 24px 26px 70px; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; flex-direction: row; align-items: center; gap: 6px; overflow-x: auto; padding: 10px; border-right: none; border-bottom: 1px solid var(--border); }
+      .brand { display: none; }
+      .nav-label, .spacer, .foot { display: none; }
+      .nav-btn { width: auto; white-space: nowrap; }
+      .nav-btn.active { box-shadow: inset 0 -2px 0 var(--accent); }
+      .nav-btn .cnt { display: none; }
+      .theme-btn { width: auto; margin: 0; }
+      main { padding: 16px 14px 50px; }
+    }
+
+    /* ---------- HERO ---------- */
+    .hero {
+      background: linear-gradient(180deg, var(--accent-soft), #e3edfb);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: var(--text);
+      padding: 20px 22px 18px;
+      margin-bottom: 18px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
+    }
+    .hero h1 { font-size: 24px; font-weight: 800; letter-spacing: -.4px; color: var(--accent); }
+    .hero .hs { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 700;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 7px;
+      min-width: 108px;
+    }
+    .chip b { font-size: 17px; color: var(--accent); }
+    .quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .quick-row button { margin: 0; }
+
+    /* ---------- CARDS (grid!) ---------- */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 0;
+    }
+    .card h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--text); }
+    .section > .card + .card { margin-top: 16px; }
+    @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 19px; } }
+
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 9px;
+      font-size: 14px;
+      font-family: inherit;
+      background: var(--bg-card);
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    textarea { min-height: 80px; resize: vertical; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > div { flex: 1; min-width: 160px; }
+    button {
+      margin-top: 12px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 9px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, transform .12s;
+    }
+    button:hover { background: var(--accent3); }
+    button:active { transform: translateY(0); }
+    .btn:hover, button:hover { transform: translateY(-1px); }
+    button.secondary { background: var(--soft); color: var(--text); }
+    button.secondary:hover { background: var(--border-strong); }
+    button.danger { background: var(--danger-soft); color: #dc2626; margin: 0; }
+    button.danger:hover { background: #fbd5d5; }
+    button.small { margin: 0 0 0 8px; padding: 6px 12px; font-size: 12px; }
+    .icon-btn { background: none; padding: 0; color: #dc2626; font-size: 18px; }
+    .icon-btn:hover { background: none; color: #b91c1c; transform: none; }
+    .news-item, .ver-item, .ticket {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: var(--bg-card);
+    }
+    .news-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .news-item:hover, .ticket:hover { box-shadow: var(--shadow); }
+    .news-item b { font-size: 14px; }
+    .news-item .meta { display: block; color: var(--muted); font-size: 12px; margin: 3px 0; }
+    .news-item .body { font-size: 13px; color: var(--muted); }
+    .badge { background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 2px 8px; font-size: 12px; font-weight: 700; }
+    .hidden { display: none; }
+    .status { margin-top: 10px; font-size: 13px; color: #16a34a; font-weight: 600; }
+    .status.err { color: #dc2626; }
+    .check-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+    .check-row input { width: auto; }
+    .check-row span { font-size: 13px; color: var(--muted); }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+    .topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 10px; }
+    .ticket .topic { font-size: 14px; font-weight: 700; }
+    .ticket .meta { color: var(--muted); font-size: 12px; margin: 3px 0; }
+    .ticket .text { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .ticket .row { align-items: center; }
+    .ticket select { padding: 6px 8px; width: auto; }
+    .pill { border-radius: 10px; padding: 2px 8px; font-size: 12px; font-weight: 700; }
+    .pill.new { background: #fee2e2; color: #b91c1c; }
+    .pill.in-progress { background: #fef3c7; color: #b45309; }
+    .pill.done { background: #dcfce7; color: #15803d; }
+    .log-line { font-size: 12px; color: var(--muted); padding: 3px 0; border-bottom: 1px dashed var(--border); }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 10px; text-align: center;
+      transition: transform .12s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .stat-card .stat-value { font-size: 26px; font-weight: 800; color: var(--accent); }
+    .stat-card .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 600; }
+    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px; border-bottom: 2px solid var(--soft); }
+    .table td { padding: 8px; border-bottom: 1px solid var(--border); }
+    .table tr:hover td { background: var(--subtle); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .grade-top { color: #16a34a; font-weight: 800; }
+    .grade-low { color: #dc2626; font-weight: 800; }
+    .err-line { font-size: 13px; padding: 7px 0; border-bottom: 1px dashed var(--border); display: flex; justify-content: space-between; gap: 8px; }
+    .err-line .msg { flex: 1; }
+    .err-line .ts { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .filter { margin: 0 0 10px; }
+    .sec-group { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--subtle); }
+    .sec-group legend { font-size: 13px; padding: 0 6px; }
+    .sec-group .sec-head { font-size: 11px; color: var(--muted); padding: 0 4px; margin-bottom: 4px; }
+    .sec-group .row { margin-bottom: 6px; }
+    .sec-group .small { align-self: center; }
+    .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+    details.days { margin-top: 4px; font-size: 12px; color: var(--muted); }
+    details.days summary { cursor: pointer; }</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><b>МЭШ Колледж</b><span>администрирование</span></div>
+    <div class="nav-label">Директор</div>
+    <button class="nav-btn active" data-tab="overview" onclick="Admin.go('overview')"><span class="ico">🏠</span>Обзор</button>
+    <button class="nav-btn" data-tab="news" onclick="Admin.go('news')"><span class="ico">🗞️</span>Новости<span class="cnt" id="nav-news-badge"></span></button>
+    <button class="nav-btn" data-tab="top" onclick="Admin.go('top')"><span class="ico">🏆</span>Рейтинг групп</button>
+    <button class="nav-btn" data-tab="attendance" onclick="Admin.go('attendance')"><span class="ico">📋</span>Посещаемость</button>
+    <button class="nav-btn" data-tab="tickets" onclick="Admin.go('tickets')"><span class="ico">🎫</span>Обращения<span class="cnt" id="nav-tickets-badge"></span></button>
+    <button class="nav-btn" data-tab="backup" onclick="Admin.go('backup')"><span class="ico">💾</span>Бэкап</button>
+    <div class="spacer"></div>
+    <div class="foot">Быстрый переход: 1–6</div>
+    <button class="theme-btn" onclick="Admin.toggleTheme()">🌓 Тема</button>
+    <button class="theme-btn" onclick="Admin.changePassword()">🔑 Сменить пароль</button>
+    <button class="theme-btn" onclick="Admin.logout()">⏻ Выйти</button>
+  </aside>
+
+  <main>
+    <div id="login-box">
+  <div class="login-wrap">
+    <div class="login-hero">
+      <div class="mascot">🦉</div>
+      <h1>МЭШ Колледж</h1>
+      <p>Панель управления новостями, заменами, студентами и аналитикой. Всё быстро и под рукой.</p>
+      <div class="login-feat">
+        <span>🚀 Рассылка push-уведомлений в пару кликов</span>
+        <span>📊 Рейтинг групп и посещаемость онлайн</span>
+        <span>💾 Автобэкапы и восстановление данных</span>
+        <span>⚡ Горячие клавиши 1–9 для разделов</span>
+      </div>
+    </div>
+    <div class="login-shell">
+      <div class="login-box card">
+        <div class="logo">🔐</div>
+        <h2>Вход в админку</h2>
+        <div class="lb-sub">Введите пароль администратора</div>
+        <input type="password" id="admin-pass" placeholder="Пароль администратора" onkeydown="if(event.key==='Enter')Admin.login()">
+        <br>
+        <button onclick="Admin.login()">Войти</button>
+        <div class="status" id="login-status"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div id="app-box" class="hidden">
+      <div class="hero">
+        <div>
+          <h1 id="page-title">Обзор</h1>
+          <div class="hs" id="page-ts"></div>
+        </div>
+        <div class="chip-row">
+          <div class="chip">👥 Входов: <b id="hero-logins">—</b></div>
+          <div class="chip">🧑‍🎓 Студентов: <b id="hero-students">—</b></div>
+          <div class="chip">🎫 Обращений: <b id="hero-tickets">—</b></div>
+        </div>
+      </div>
+
+      <!-- ================= Обзор ================= -->
+      <section class="tab-pane" id="pane-overview">
+        <div class="grid2">
+        <div class="card">
+          <h2>📈 Статистика за сегодня</h2>
+          <div id="stats-block"><button onclick="Admin.loadStats()">Загрузить статистику</button></div>
+        </div>
+        <div class="card">
+          <h2>⚡ Быстрые действия</h2>
+          <div class="quick-row">
+            <button onclick="Admin.go('news')">🗞️ Добавить новость</button>
+            <button onclick="Admin.downloadBackup()">💾 Скачать бэкап</button>
+            <button onclick="Admin.reload()">🔄 Перечитать данные</button>
+            <button onclick="Admin.go('top')">🏆 Рейтинг</button>
+            <button onclick="Admin.go('attendance')">📋 Посещаемость</button>
+          </div>
+          <div class="status" id="reload-status"></div>
+          <div class="status" id="backup-status"></div>
+        </div>
+        </div>
+      </section>
+
+      <!-- ================= Новости ================= -->
+      <section class="tab-pane hidden" id="pane-news">
+        <div class="grid2">
+        <div class="card">
+          <h2>➕ Добавить новость</h2>
+          <label>Заголовок</label>
+          <input id="n-title" placeholder="Заголовок новости">
+          <div class="row">
+            <div><label>Категория</label><input id="n-category" placeholder="Объявление / Важное / Мероприятие"></div>
+            <div><label>Дата</label><input id="n-date" placeholder="12 сентября 2026"></div>
+          </div>
+          <label>Текст</label>
+          <textarea id="n-body" placeholder="Текст новости"></textarea>
+          <label>Показывать только группам (пусто = всем)</label>
+          <input id="n-groups" placeholder="Например: 1ГД-2-11-26, 1И-1-26">
+          <div class="check-row">
+            <input type="checkbox" id="n-announce" checked>
+            <span>Разослать push-уведомление подписчикам</span>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" id="n-important">
+            <span>Отметить как «Важно» (с фиксацией прочитавших)</span>
+          </div>
+          <button onclick="Admin.addNews()">Опубликовать</button>
+          <div class="status" id="news-status"></div>
+        </div>
+        <div class="card">
+          <h2>🗞️ Новости <span class="badge" id="news-count"></span></h2>
+          <input class="filter" id="news-search" placeholder="Поиск по новостям..." oninput="Admin.renderNewsFiltered()">
+          <div id="news-list"></div>
+        </div>
+        </div>
+      </section>
+
+      <!-- ================= Обращения ================= -->
+      <section class="tab-pane hidden" id="pane-tickets">
+        <div class="card">
+          <h2>Обращения студентов <span class="badge" id="tickets-count"></span></h2>
+          <div id="tickets-list"></div>
+          <div class="status" id="tickets-status"></div>
+        </div>
+      </section>
+
+      <!-- ================= Рейтинг групп ================= -->
+      <section class="tab-pane hidden" id="pane-top">
+        <div class="card">
+          <h2>🏆 Рейтинг групп</h2>
+          <div class="quick-row">
+            <button onclick="Admin.loadTopGroups()">Обновить</button>
+            <button class="secondary" onclick="Admin.exportTopCsv()">Скачать CSV</button>
+          </div>
+          <div id="top-block"><div class="empty">Нажмите «Обновить»</div></div>
+        </div>
+      </section>
+
+      <!-- ================= Посещаемость ================= -->
+      <section class="tab-pane hidden" id="pane-attendance">
+        <div class="card">
+          <h2>📋 Посещаемость по группам</h2>
+          <div class="quick-row">
+            <button onclick="Admin.loadAttendanceDashboard()">Обновить</button>
+            <button class="secondary" onclick="Admin.exportAttendanceCsv()">Скачать CSV</button>
+          </div>
+          <div id="att-block"><div class="empty">Нажмите «Обновить»</div></div>
+        </div>
+      </section>
+
+      <!-- ================= Бэкап ================= -->
+      <section class="tab-pane hidden" id="pane-backup">
+        <div class="card">
+          <h2>💾 Бэкап данных</h2>
+          <div class="quick-row">
+            <button onclick="Admin.downloadBackup()">Скачать бэкап (.zip)</button>
+            <button class="secondary" onclick="document.getElementById('restore-file').click()">Восстановить из бэкапа</button>
+          </div>
+          <input type="file" id="restore-file" accept=".zip" style="display:none" onchange="Admin.restoreBackup(this)">
+          <div class="status" id="backup-status2"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  const Admin = {
+    TOKEN_KEY: 'mesh_admin_token',
+    newsData: [],
+    logData: [],
+
+    token() { return localStorage.getItem(this.TOKEN_KEY) || ''; },
+
+    esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    },
+
+    applyTheme() {
+      const t = localStorage.getItem('mesh_admin_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    },
+
+    toggleTheme() {
+      const cur = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('mesh_admin_theme', next);
+      this.applyTheme();
+    },
+
+    async req(path, opts = {}) {
+      const response = await fetch(path, {
+        ...opts,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + this.token(),
+          ...(opts.headers || {})
+        }
+      });
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch (e) { data = { detail: text }; }
+      if (!response.ok) {
+        if (response.status === 401 && path !== '/api/admin/data') this.logout();
+        throw new Error(data.detail || 'Ошибка');
+      }
+      return data;
+    },
+
+    setStatus(id, msg, isErr) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = msg;
+      el.className = 'status' + (isErr ? ' err' : '');
+    },
+
+    async login() {
+      const pass = document.getElementById('admin-pass').value.trim();
+      if (!pass) return;
+      localStorage.setItem(this.TOKEN_KEY, pass);
+      try {
+        await this.req('/api/admin/data');
+        document.getElementById('login-box').classList.add('hidden');
+        document.getElementById('app-box').classList.remove('hidden');
+        this.go();
+        this.load();
+      } catch (e) {
+        localStorage.removeItem(this.TOKEN_KEY);
+        this.setStatus('login-status', e.message, true);
+      }
+    },
+
+    logout() {
+      localStorage.removeItem(this.TOKEN_KEY);
+      location.reload();
+    },
+
+    go(tab) {
+      const hash = tab || (location.hash || '').replace('#', '') || 'overview';
+      const panes = document.querySelectorAll('.tab-pane');
+      panes.forEach(p => p.classList.add('hidden'));
+      const pane = document.getElementById('pane-' + hash);
+      if (pane) pane.classList.remove('hidden');
+      document.querySelectorAll('.nav-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.tab === hash));
+      const titles = { overview: 'Обзор', news: 'Новости', tickets: 'Обращения', top: 'Рейтинг групп', attendance: 'Посещаемость', backup: 'Бэкап' };
+      document.getElementById('page-title').textContent = titles[hash] || 'Обзор';
+      if (location.hash !== '#' + hash) history.replaceState(null, '', '#' + hash);
+    },
+
+    async load() {
+      const data = await this.req('/api/admin/data');
+      this.newsData = data.news || [];
+      this.renderNewsFiltered();
+      this.loadTickets();
+      this.loadStats();
+      this.loadTopGroups();
+      this.loadAttendanceDashboard();
+    },
+
+    addNavCounts() {
+      const nb = document.getElementById('nav-news-badge');
+      const tb = document.getElementById('nav-tickets-badge');
+      if (nb) nb.textContent = this.newsData.length || '';
+      if (tb) tb.textContent = this.ticketsCount || '';
+    },
+
+    renderNewsFiltered() {
+      const q = (document.getElementById('news-search').value || '').toLowerCase().trim();
+      const list = this.newsData.filter(n => !q || String(n.title).toLowerCase().includes(q));
+      document.getElementById('news-count').textContent = list.length;
+      const el = document.getElementById('news-list');
+      if (!list.length) { el.innerHTML = '<div class="empty">Новостей нет</div>'; return; }
+      el.innerHTML = list.map(n => `
+        <div class="news-item">
+          <div>
+            <b>${this.esc(n.title)}</b>
+            <span class="meta">${this.esc(n.category || '')} · ${this.esc(n.date || '')}</span>
+            <span class="body">${this.esc(n.body)}</span>
+          </div>
+          <button class="icon-btn" title="Удалить" onclick="Admin.delNews('${this.esc(n.id)}')">&times;</button>
+        </div>`).join('');
+      this.addNavCounts();
+    },
+
+    async addNews() {
+      const title = document.getElementById('n-title').value.trim();
+      if (!title) { this.setStatus('news-status', 'Введите заголовок', true); return; }
+      try {
+        const groups = document.getElementById('n-groups').value.split(',').map(s => s.trim()).filter(Boolean);
+        const data = await this.req('/api/admin/news', {
+          method: 'POST',
+          body: JSON.stringify({
+            title,
+            category: document.getElementById('n-category').value.trim(),
+            date: document.getElementById('n-date').value.trim(),
+            body: document.getElementById('n-body').value.trim(),
+            groups: groups,
+            important: !!document.getElementById('n-important').checked
+          })
+        });
+        document.getElementById('n-title').value = document.getElementById('n-category').value = document.getElementById('n-date').value = document.getElementById('n-body').value = document.getElementById('n-groups').value = '';
+        if (document.getElementById('n-announce').checked) {
+          await this.req('/api/admin/announce', {
+            method: 'POST',
+            body: JSON.stringify({ title: '📣 ' + title, body: 'Новая новость в IT Москва Колледж' })
+          }).catch(() => ({}));
+          this.setStatus('news-status', 'Опубликовано, push разослан');
+        } else {
+          this.setStatus('news-status', 'Опубликовано');
+        }
+        this.newsData = data.news || [];
+        this.renderNewsFiltered();
+      } catch (e) {
+        this.setStatus('news-status', e.message, true);
+      }
+    },
+
+    async delNews(id) {
+      try {
+        const data = await this.req('/api/admin/news/' + id, { method: 'DELETE' });
+        this.newsData = data.news || [];
+        this.renderNewsFiltered();
+      } catch (e) { alert(e.message); }
+    },
+
+    async sendAnnounce(isTest) {
+      const title = document.getElementById('an-title').value.trim();
+      const body = document.getElementById('an-body').value.trim();
+      if (!title && !body) { this.setStatus('announce-status', 'Введите заголовок или текст', true); return; }
+      const login = isTest ? document.getElementById('an-login').value.trim() : '';
+      if (isTest && !login) { this.setStatus('announce-status', 'Укажите логин для теста', true); return; }
+      this.setStatus('announce-status', 'Отправляю…');
+      try {
+        const r = await this.req('/api/admin/announce', {
+          method: 'POST',
+          body: JSON.stringify({ title, body, login, url: document.getElementById('an-url').value.trim() || '/' })
+        });
+        let msg = 'Рассылка выполнена';
+        if (r.sent != null) msg = 'Готово: доставлено ' + r.sent + ', ошибок ' + r.failed;
+        if (r.ok === false) msg += ' (WebPush не настроен)';
+        this.setStatus('announce-status', msg);
+      } catch (e) { this.setStatus('announce-status', e.message, true); }
+    },
+
+    async createPoll() {
+      const q = document.getElementById('poll-q').value.trim();
+      const ops = document.getElementById('poll-ops').value.split(',').map(s => s.trim()).filter(Boolean);
+      if (!q || ops.length < 2) { this.setStatus('poll-status', 'Введите вопрос и минимум 2 варианта', true); return; }
+      try {
+        await this.req('/api/admin/polls', { method: 'POST', body: JSON.stringify({ question: q, options: ops }) });
+        document.getElementById('poll-q').value = document.getElementById('poll-ops').value = '';
+        this.setStatus('poll-status', 'Опрос создан');
+      } catch (e) { this.setStatus('poll-status', e.message, true); }
+    },
+
+    async loadVersions() {
+      const name = document.getElementById('ver-file').value;
+      try {
+        const data = await this.req('/api/admin/versions/' + name);
+        const el = document.getElementById('ver-list');
+        el.innerHTML = (data.versions || []).map(v => `
+          <div class="ver-item">
+            <b>${this.esc(v.version)}</b>
+            <span class="meta">копия ${this.esc(name)}.json</span>
+            <button class="small" onclick="Admin.restoreVersion('${this.esc(name)}','${this.esc(v.version)}')">Восстановить</button>
+          </div>`).join('') || '<div class="empty">Версий пока нет</div>';
+      } catch (e) { document.getElementById('ver-list').textContent = e.message; }
+    },
+
+    async restoreVersion(name, version) {
+      if (!confirm('Восстановить ' + name + '.json к версии ' + version + '? Текущий файл будет заменён.')) return;
+      try {
+        await this.req('/api/admin/versions/' + name + '/restore', { method: 'POST', body: JSON.stringify({ version }) });
+        alert('Восстановлено: ' + version);
+        this.loadVersions();
+      } catch (e) { alert(e.message); }
+    },
+
+    fillReplacements() {
+      document.getElementById('r-date').value = '12 сентября 2026';
+      document.getElementById('r-items').value = JSON.stringify([
+        { day: 'вторник', pair: 4, time: '14:00 — 15:30', subject: 'Математика', from_teacher: 'Иванова И.И.', replacement_teacher: 'Фёдоров Ф.Ф.', room: 'Каб. 302', note: 'Замена' },
+        { day: 'вторник', pair: 5, time: '16:00 — 17:30', subject: 'Информатика', from_teacher: 'Петров П.П.', replacement_teacher: 'Кузнецов К.К.', room: 'Каб. 312', note: 'Перенос' }
+      ], null, 2);
+    },
+
+    async saveReplacements() {
+      let items;
+      try { items = JSON.parse(document.getElementById('r-items').value || '[]'); }
+      catch (e) { this.setStatus('rep-status', 'Некорректный JSON', true); return; }
+      try {
+        await this.req('/api/admin/replacements', { method: 'POST', body: JSON.stringify({ date: document.getElementById('r-date').value.trim(), items }) });
+        this.setStatus('rep-status', 'Сохранено');
+      } catch (e) { this.setStatus('rep-status', e.message, true); }
+    },
+
+    async reload() {
+      try {
+        await this.req('/api/admin/reload', { method: 'POST', body: '{}' });
+        this.setStatus('reload-status', 'Данные перечитаны');
+        if (document.getElementById('reload-status').classList) document.getElementById('reload-status').className = 'status';
+      } catch (e) { this.setStatus('reload-status', e.message, true); }
+    },
+
+    async loadTickets() {
+      try {
+        const data = await this.req('/api/admin/tickets');
+        this.ticketsCount = data.tickets.length;
+        document.getElementById('tickets-count').textContent = data.tickets.length;
+        const el = document.getElementById('tickets-list');
+        const labels = { 'new': 'Новое', 'in-progress': 'В работе', 'done': 'Готово' };
+        el.innerHTML = data.tickets.length === 0
+          ? '<div class="empty">Обращений нет</div>'
+          : data.tickets.map(t => `
+            <div class="ticket">
+              <div class="topic">${this.esc(t.topic)}</div>
+              <div class="meta">${this.esc(t.fio || t.login)} · ${this.esc(t.group || '')} · ${this.esc(t.created || '')}</div>
+              <div class="text">${this.esc(t.text || '')}</div>
+              <div class="row">
+                <select onchange="Admin.setTicketStatus('${this.esc(t.id)}', this.value)">
+                  ${Object.keys(labels).map(k => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${labels[k]}</option>`).join('')}
+                </select>
+              </div>
+              <div class="row" style="align-items:center;">
+                <input class="ticket-answer" placeholder="${t.answer ? 'Ответ: ' + this.esc(t.answer) : 'Ответ студенту…'}" style="flex:1; min-width:0;">
+                <button class="small" onclick="Admin.answerTicket('${this.esc(t.id)}', this)">Ответить</button>
+              </div>
+            </div>`).join('');
+        this.addNavCounts();
+      } catch (e) { this.setStatus('tickets-status', e.message, true); }
+    },
+
+    async setTicketStatus(id, status) {
+      try {
+        await this.req('/api/admin/tickets/' + id, { method: 'POST', body: JSON.stringify({ status }) });
+        this.setStatus('tickets-status', 'Статус обновлён');
+      } catch (e) { this.setStatus('tickets-status', e.message, true); }
+    },
+
+    async resetPassword() {
+      const login = document.getElementById('p-login').value.trim();
+      const pass = document.getElementById('p-pass').value.trim();
+      if (!login || !pass) { this.setStatus('pw-status', 'Заполните оба поля', true); return; }
+      try {
+        const data = await this.req('/api/admin/reset-password', { method: 'POST', body: JSON.stringify({ login, password: pass }) });
+        document.getElementById('p-login').value = document.getElementById('p-pass').value = '';
+        this.setStatus('pw-status', data.message || 'Сброшено');
+        this.renderLog();
+      } catch (e) { this.setStatus('pw-status', e.message, true); }
+    },
+
+    async renderLog() {
+      try {
+        const data = await this.req('/api/admin/log');
+        this.logData = data.log.slice().reverse();
+        this.renderLogFiltered();
+      } catch (e) { this.setStatus('log-status', e.message, true); }
+    },
+
+    renderLogFiltered() {
+      const q = (document.getElementById('log-search').value || '').toLowerCase().trim();
+      const list = this.logData.filter(l => !q || String(l.action).toLowerCase().includes(q));
+      const el = document.getElementById('log-list');
+      el.innerHTML = list.length === 0
+        ? '<div class="empty">Действий пока нет</div>'
+        : list.map(l => `<div class="log-line">${this.esc(l.ts)} — ${this.esc(l.action)}</div>`).join('');
+    },
+
+    async downloadBackup() {
+      try {
+        const response = await fetch('/api/admin/backup', { headers: { 'Authorization': 'Bearer ' + this.token() } });
+        if (!response.ok) throw new Error('Ошибка');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'mesh-backup.zip';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        ['backup-status', 'backup-status2'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = 'Бэкап скачан'; el.className = 'status'; } });
+      } catch (e) {
+        this.setStatus('backup-status', e.message, true);
+        this.setStatus('backup-status2', e.message, true);
+      }
+    },
+
+    async restoreBackup(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      if (!confirm('Заменить текущие данные файлами из архива?')) { input.value = ''; return; }
+      try {
+        const buffer = await file.arrayBuffer();
+        const response = await fetch('/api/admin/restore-zip', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + this.token() },
+          body: buffer
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.detail || 'Ошибка восстановления');
+        this.setStatus('backup-status2', 'Восстановлено: ' + (data.restored || []).join(', '));
+        input.value = '';
+      } catch (e) { this.setStatus('backup-status2', e.message, true); input.value = ''; }
+    },
+
+    async importSchedule() {
+      const status = 'import-schedule-status';
+      this.setStatus(status, 'Импортирую…');
+      try {
+        const data = await this.req('/api/admin/import/schedule', { method: 'POST', body: JSON.stringify({ csv: document.getElementById('schedule-csv').value }) });
+        this.setStatus(status, 'Импортировано: группы ' + (data.groups || []).join(', '));
+      } catch (e) { this.setStatus(status, e.message, true); }
+    },
+
+    async importStudents() {
+      try {
+        const data = await this.req('/api/admin/students/import', { method: 'POST', body: JSON.stringify({ csv: document.getElementById('import-csv').value }) });
+        this.setStatus('import-status', 'Создано: ' + data.created + ', пропущено: ' + data.skipped);
+      } catch (e) { this.setStatus('import-status', e.message, true); }
+    },
+
+    async loadBackupSettings() {
+      try {
+        const s = await this.req('/api/admin/backup-settings');
+        document.getElementById('bk-enabled').checked = !!s.auto_backup;
+        document.getElementById('bk-days').value = s.backup_days || 7;
+      } catch (e) { this.setStatus('bk-status', e.message, true); }
+    },
+
+    async saveBackupSettings() {
+      try {
+        const data = await this.req('/api/admin/backup-settings', {
+          method: 'POST',
+          body: JSON.stringify({ auto_backup: document.getElementById('bk-enabled').checked, backup_days: parseInt(document.getElementById('bk-days').value, 10) || 7 })
+        });
+        this.setStatus('bk-status', 'Сохранено: автобэкап ' + (data.auto_backup ? 'вкл' : 'выкл') + ', ' + data.backup_days + ' копий');
+      } catch (e) { this.setStatus('bk-status', e.message, true); }
+    },
+
+    async loadStats() {
+      try {
+        const data = await this.req('/api/admin/stats');
+        const heroMap = { 'hero-logins': data.logins_today, 'hero-students': data.students, 'hero-tickets': data.open_tickets };
+        Object.keys(heroMap).forEach(id => { const el = document.getElementById(id); if (el) el.textContent = heroMap[id]; });
+        const el = document.getElementById('stats-block');
+        el.innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value">${data.logins_today}</div><div class="stat-label">Входов сегодня</div></div>
+            <div class="stat-card"><div class="stat-value">${data.logins_week}</div><div class="stat-label">За неделю</div></div>
+            <div class="stat-card"><div class="stat-value">${data.students}</div><div class="stat-label">Студентов</div></div>
+            <div class="stat-card"><div class="stat-value">${data.open_tickets}</div><div class="stat-label">Открытых обращений</div></div>
+            <div class="stat-card"><div class="stat-value">${data.poll_votes}</div><div class="stat-label">Голосов в опросах</div></div>
+            <div class="stat-card"><div class="stat-value">${data.frontend_errors}</div><div class="stat-label">Ошибок фронта</div></div>
+          </div>`;
+      } catch (e) {
+        document.getElementById('stats-block').innerHTML = '<div class="empty">' + this.esc(e.message) + '</div>';
+      }
+    },
+
+    async loadTopGroups() {
+      try {
+        const data = await this.req('/api/admin/top-groups');
+        this._topCache = data.groups || [];
+        const el = document.getElementById('top-block');
+        const groups = data.groups || [];
+        el.innerHTML = groups.length === 0
+          ? '<div class="empty">Нет данных об оценках</div>'
+          : `<table class="table">
+              <tr><th>#</th><th>Группа</th><th class="num">Средний балл</th><th class="num">Учащихся</th></tr>
+              ${groups.map(g => {
+                const cls = g.place === 1 ? 'grade-top' : (g.avg > 0 && g.avg < 3 && g.count > 0 ? 'grade-low' : '');
+                return `<tr><td>${g.place}</td><td><b>${this.esc(g.group)}</b></td><td class="num ${cls}">${g.count ? g.avg : '—'}</td><td class="num">${g.count}</td></tr>`;
+              }).join('')}
+            </table>`;
+      } catch (e) { document.getElementById('top-block').innerHTML = '<div class="empty">' + this.esc(e.message) + '</div>'; }
+    },
+
+    async loadAttendanceDashboard() {
+      try {
+        const data = await this.req('/api/admin/attendance-stats');
+        this._attCache = data.groups || [];
+        const el = document.getElementById('att-block');
+        const groups = data.groups || [];
+        el.innerHTML = groups.length === 0
+          ? '<div class="empty">Нет данных</div>'
+          : `<table class="table">
+              <tr><th>Группа</th><th class="num">Процент</th><th class="num">Пропуски</th><th class="num">Опоздания</th><th class="num">Всего занятий</th><th>Детали</th></tr>
+              ${groups.map(g => `<tr>
+                <td><b>${this.esc(g.group)}</b></td>
+                <td class="num">${g.percent}%</td>
+                <td class="num ${g.absent ? 'grade-low' : ''}">${g.absent}</td>
+                <td class="num">${g.late}</td>
+                <td class="num">${g.total}</td>
+                <td>
+                  <details class="days">
+                    <summary>${(g.days || []).length} дней</summary>
+                    ${(g.days || []).map(d => `<div>${this.esc(d.date)} — пропущено ${d.absent}/${d.total}</div>`).join('')}
+                  </details>
+                </td>
+              </tr>`).join('')}
+            </table>`;
+      } catch (e) { document.getElementById('att-block').innerHTML = '<div class="empty">' + this.esc(e.message) + '</div>'; }
+    },
+
+    async loadFrontendErrors() {
+      try {
+        const data = await this.req('/api/admin/frontend-errors');
+        const errs = data.errors || [];
+        this.errorsCount = errs.length;
+        this.addNavCounts();
+        document.getElementById('errors-count').textContent = errs.length;
+        const el = document.getElementById('errors-list');
+        el.innerHTML = errs.length === 0
+          ? '<div class="empty">Ошибок нет 🎉</div>'
+          : errs.map(e => `<div class="err-line"><span class="msg">${this.esc(e.msg)}</span><span class="ts">${this.esc(e.ts)}</span></div>`).join('');
+      } catch (e) { document.getElementById('errors-list').innerHTML = '<div class="empty">' + this.esc(e.message) + '</div>'; }
+    },
+
+    async clearFrontendErrors() {
+      if (!confirm('Удалить все записи ошибок фронтенда из журнала?')) return;
+      try {
+        await this.req('/api/admin/frontend-errors/clear', { method: 'POST', body: '{}' });
+        this.loadFrontendErrors();
+      } catch (e) { alert(e.message); }
+    },
+
+    exportTopCsv() {
+      const data = this._topCache || [];
+      if (!data.length) return;
+      const rows = [['place', 'group', 'avg', 'count']];
+      data.forEach(g => rows.push([g.place, g.group, g.avg, g.count]));
+      this._downloadCsv('top-groups.csv', rows);
+    },
+
+    exportAttendanceCsv() {
+      const rows = [['group', 'percent', 'absent', 'late', 'total']];
+      (this._attCache || []).forEach(g => rows.push([g.group, g.percent, g.absent, g.late, g.total]));
+      this._downloadCsv('attendance.csv', rows);
+    },
+
+    _downloadCsv(name, rows) {
+      const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+
+    loadFileEditor() {
+      const name = document.getElementById('file-select').value;
+      this.req('/api/admin/file/' + name).then(data => {
+        document.getElementById('file-editor').value = JSON.stringify(data.content, null, 2);
+        this.setStatus('file-status', '');
+      }).catch(e => this.setStatus('file-status', e.message, true));
+    },
+
+    async saveFileEditor() {
+      const name = document.getElementById('file-select').value;
+      let content;
+      try { content = JSON.parse(document.getElementById('file-editor').value); }
+      catch (e) { this.setStatus('file-status', 'Некорректный JSON', true); return; }
+      try {
+        await this.req('/api/admin/file/' + name, { method: 'PUT', body: JSON.stringify({ content }) });
+        this.setStatus('file-status', 'Сохранено ✅');
+      } catch (e) { this.setStatus('file-status', e.message, true); }
+    },
+
+    async exportFileCSV() {
+      const name = document.getElementById('file-select').value;
+      try {
+        const response = await fetch('/api/admin/export/' + name, { headers: { 'Authorization': 'Bearer ' + this.token() } });
+        if (!response.ok) throw new Error('Ошибка экспорта');
+        const text = await response.text();
+        const blob = new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name + '.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.setStatus('file-status', 'CSV скачан');
+      } catch (e) { this.setStatus('file-status', e.message, true); }
+    },
+
+    /* ---------- Разделы: bells / exams / canteen / faq ---------- */
+    async loadSectionEditor() {
+      const name = document.getElementById('sec-select').value;
+      this._secName = name;
+      try {
+        const data = await this.req('/api/admin/file/' + name);
+        const c = data.content || {};
+        if (name === 'bells') this._bells = { first: c.first || [], second: c.second || [], saturday: c.saturday || [] };
+        else if (name === 'exams') this._exams = { session: c.session || '', exams: c.exams || [], consultations: c.consultations || [], retakes: c.retakes || '' };
+        else if (name === 'canteen') this._canteen = { days: Array.isArray(c) ? c : (c.days || []) };
+        else if (name === 'faq') this._faq = Array.isArray(c) ? c : [];
+        this.renderSection();
+      } catch (e) { this.setStatus('sec-status', e.message, true); }
+    },
+
+    renderSection() {
+      const n = this._secName;
+      let html = '';
+      if (n === 'bells') html = this.renderBells();
+      else if (n === 'exams') html = this.renderExams();
+      else if (n === 'canteen') html = this.renderCanteen();
+      else if (n === 'faq') html = this.renderFaq();
+      document.getElementById('sec-editor').innerHTML = html;
+      this.setStatus('sec-status', '');
+    },
+
+    renderBells() {
+      const labels = { first: 'Первая смена', second: 'Вторая смена', saturday: 'Суббота' };
+      const groups = ['first', 'second', 'saturday'];
+      let html = '';
+      for (const g of groups) {
+        const items = this._bells[g] || [];
+        html += `<fieldset class="sec-group"><legend><b>${labels[g]}</b> <button class="small" onclick="Admin.bellAdd('${g}')">+ пара</button></legend>`;
+        html += `<div class="row sec-head"><div>№</div><div>Начало</div><div>Перемена</div><div>Конец</div><div></div></div>`;
+        items.forEach((it, i) => {
+          html += `<div class="row" style="align-items:center;">
+            <div style="flex:0 0 54px;"><input type="number" value="${it.pair}" oninput="Admin._bells['${g}'][${i}].pair=this.value"></div>
+            <div><input type="time" value="${this.esc(it.start)}" oninput="Admin._bells['${g}'][${i}].start=this.value"></div>
+            <div><input type="time" value="${this.esc(it.transition)}" oninput="Admin._bells['${g}'][${i}].transition=this.value"></div>
+            <div><input type="time" value="${this.esc(it.end)}" oninput="Admin._bells['${g}'][${i}].end=this.value"></div>
+            <div style="flex:0 0 40px;"><button class="danger small" onclick="Admin.bellDel('${g}',${i})">✕</button></div>
+          </div>`;
+        });
+        html += `</fieldset>`;
+      }
+      return html;
+    },
+
+    bellAdd(g) { this._bells[g].push({ pair: this._bells[g].length + 1, start: '09:00', transition: '09:55', end: '10:00' }); this.renderSection(); },
+    bellDel(g, i) { this._bells[g].splice(i, 1); this.renderSection(); },
+
+    renderExams() {
+      const e = this._exams;
+      let html = `<label>Сессия</label><input value="${this.esc(e.session || '')}" oninput="Admin._exams.session=this.value">`;
+      html += `<label>Экзамены</label>`;
+      (e.exams || []).forEach((x, i) => {
+        html += `<div class="row" style="align-items:center;">
+          <div><input placeholder="Предмет" value="${this.esc(x.subject || '')}" oninput="Admin._exams.exams[${i}].subject=this.value"></div>
+          <div><input type="date" value="${this.esc(x.date || '')}" oninput="Admin._exams.exams[${i}].date=this.value"></div>
+          <div><input placeholder="Форма" value="${this.esc(x.form || '')}" oninput="Admin._exams.exams[${i}].form=this.value"></div>
+          <div><input type="time" value="${this.esc(x.time || '')}" oninput="Admin._exams.exams[${i}].time=this.value"></div>
+          <div style="flex:0 0 40px;"><button class="danger small" onclick="Admin.examsDel(0,${i})">✕</button></div>
+        </div>`;
+      });
+      html += `<button class="small" onclick="Admin.examsAdd(0)">+ экзамен</button>`;
+      html += `<label>Консультации</label>`;
+      (e.consultations || []).forEach((x, i) => {
+        html += `<div class="row" style="align-items:center;">
+          <div><input placeholder="Предмет" value="${this.esc(x.subject || '')}" oninput="Admin._exams.consultations[${i}].subject=this.value"></div>
+          <div><input placeholder="Дата" value="${this.esc(x.date || '')}" oninput="Admin._exams.consultations[${i}].date=this.value"></div>
+          <div><input type="time" value="${this.esc(x.time || '')}" oninput="Admin._exams.consultations[${i}].time=this.value"></div>
+          <div><input placeholder="Каб." value="${this.esc(x.room || '')}" oninput="Admin._exams.consultations[${i}].room=this.value"></div>
+          <div style="flex:0 0 40px;"><button class="danger small" onclick="Admin.examsDel(1,${i})">✕</button></div>
+        </div>`;
+      });
+      html += `<button class="small" onclick="Admin.examsAdd(1)">+ консультация</button>`;
+      html += `<label>Пересдачи</label><textarea oninput="Admin._exams.retakes=this.value">${this.esc(e.retakes || '')}</textarea>`;
+      return html;
+    },
+
+    examsAdd(kind) {
+      if (kind === 0) this._exams.exams.push({ subject: '', date: '', form: '', time: '' });
+      else this._exams.consultations.push({ subject: '', date: '', time: '', room: '' });
+      this.renderSection();
+    },
+    examsDel(kind, i) {
+      if (kind === 0) this._exams.exams.splice(i, 1);
+      else this._exams.consultations.splice(i, 1);
+      this.renderSection();
+    },
+
+    renderCanteen() {
+      const days = this._canteen.days || [];
+      let html = '';
+      days.forEach((d, di) => {
+        html += `<fieldset class="sec-group"><legend><b>${this.esc(d.day) || 'День'}</b>
+          <button class="small" onclick="Admin.canteenDayDel(${di})">✕ день</button>
+          <button class="small" onclick="Admin.canteenMealAdd(${di})">+ блюдо</button></legend>
+          <input class="filter" value="${this.esc(d.day || '')}" placeholder="Название дня" oninput="Admin._canteen.days[${di}].day=this.value">`;
+        (d.meals || []).forEach((m, mi) => {
+          html += `<div class="row" style="align-items:center;">
+            <div style="flex:3;"><input placeholder="Блюдо" value="${this.esc(m.name || '')}" oninput="Admin._canteen.days[${di}].meals[${mi}].name=this.value"></div>
+            <div style="flex:1;"><input type="number" placeholder="₽" value="${m.price ?? ''}" oninput="Admin._canteen.days[${di}].meals[${mi}].price=this.value"></div>
+            <div style="flex:0 0 40px;"><button class="danger small" onclick="Admin.canteenMealDel(${di},${mi})">✕</button></div>
+          </div>`;
+        });
+        html += `</fieldset>`;
+      });
+      html += `<button onclick="Admin.canteenDayAdd()">+ день</button>`;
+      return html;
+    },
+
+    canteenDayAdd() { this._canteen.days.push({ day: '', meals: [] }); this.renderSection(); },
+    canteenDayDel(di) { this._canteen.days.splice(di, 1); this.renderSection(); },
+    canteenMealAdd(di) { this._canteen.days[di].meals.push({ name: '', price: 0 }); this.renderSection(); },
+    canteenMealDel(di, mi) { this._canteen.days[di].meals.splice(mi, 1); this.renderSection(); },
+
+    renderFaq() {
+      let html = '';
+      (this._faq || []).forEach((f, i) => {
+        html += `<div class="row" style="align-items:flex-start;">
+          <div style="flex:1;"><input placeholder="Вопрос" value="${this.esc(f.q || '')}" oninput="Admin._faq[${i}].q=this.value"></div>
+          <div style="flex:1;"><input placeholder="Ответ" value="${this.esc(f.a || '')}" oninput="Admin._faq[${i}].a=this.value"></div>
+          <div style="flex:0 0 40px;"><button class="danger small" onclick="Admin.faqDel(${i})">✕</button></div>
+        </div>`;
+      });
+      html += `<button class="small" onclick="Admin.faqAdd()">+ вопрос</button>`;
+      return html;
+    },
+    faqAdd() { this._faq.push({ q: '', a: '' }); this.renderSection(); },
+    faqDel(i) { this._faq.splice(i, 1); this.renderSection(); },
+
+    async saveSection() {
+      const n = this._secName;
+      if (!n) return;
+      let content;
+      if (n === 'bells') content = this._bells;
+      else if (n === 'exams') content = this._exams;
+      else if (n === 'canteen') content = this._canteen;
+      else if (n === 'faq') content = this._faq;
+      try {
+        await this.req('/api/admin/file/' + n, { method: 'PUT', body: JSON.stringify({ content }) });
+        this.setStatus('sec-status', 'Сохранено ✅');
+      } catch (e) { this.setStatus('sec-status', e.message, true); }
+    },
+
+    /* ---------- Планировщик ---------- */
+    _renderSched(posts) {
+      document.getElementById('nav-sched-badge').textContent = posts.length || '';
+      const el = document.getElementById('sched-list');
+      el.innerHTML = posts.length === 0
+        ? '<div class="empty">Нет запланированных публикаций</div>'
+        : posts.map(p => `
+          <div class="news-item">
+            <div>
+              <b>${this.esc(p.title)}</b>
+              <span class="meta">${this.esc(p.category || 'Раздел')} · ${this.esc(p.publish_at)}${p.announce ? ' · 📣 push' : ''}</span>
+            </div>
+            <button class="danger small" onclick="Admin.cancelScheduled('${this.esc(p.id)}')">Отменить</button>
+          </div>`).join('');
+    },
+
+    async loadScheduled() {
+      try {
+        const data = await this.req('/api/admin/scheduled');
+        this._renderSched(data.posts || []);
+      } catch (e) { document.getElementById('sched-list').innerHTML = '<div class="empty">' + this.esc(e.message) + '</div>'; }
+    },
+
+    async addScheduled() {
+      const title = document.getElementById('sch-title').value.trim();
+      const when = document.getElementById('sch-when').value;
+      if (!title) { this.setStatus('sch-status', 'Введите заголовок', true); return; }
+      if (!when) { this.setStatus('sch-status', 'Укажите время публикации', true); return; }
+      try {
+        const r = await this.req('/api/admin/scheduled', {
+          method: 'POST',
+          body: JSON.stringify({
+            title, body: document.getElementById('sch-body').value.trim(),
+            category: document.getElementById('sch-category').value.trim(),
+            groups: document.getElementById('sch-groups').value.split(',').map(s => s.trim()).filter(Boolean),
+            publish_at: when, announce: !!document.getElementById('sch-announce').checked
+          })
+        });
+        this.setStatus('sch-status', 'Запланировано на ' + when);
+        ['sch-title', 'sch-body', 'sch-category', 'sch-groups', 'sch-when'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        this._renderSched(r.posts || []);
+      } catch (e) { this.setStatus('sch-status', e.message, true); }
+    },
+
+    async cancelScheduled(id) {
+      try {
+        const r = await this.req('/api/admin/scheduled/' + encodeURIComponent(id) + '/cancel', { method: 'POST', body: '{}' });
+        this._renderSched(r.posts || []);
+      } catch (e) { alert(e.message); }
+    },
+
+    /* ---------- Чат ---------- */
+    _renderChat(msgs) {
+      document.getElementById('chat-count').textContent = msgs.length;
+      document.getElementById('nav-chat-badge').textContent = msgs.length || '';
+      const el = document.getElementById('chat-list');
+      el.innerHTML = msgs.length === 0
+        ? '<div class="empty">Сообщений нет</div>'
+        : msgs.map(m => `
+          <div class="ticket">
+            <div class="topic">👤 ${this.esc(m.fio)} <span class="meta">• ${this.esc(m.ts)}</span></div>
+            <div class="text">${this.esc(m.text)}</div>
+            <button class="danger small" onclick="Admin.deleteChatMsg('${this.esc(m.id)}')">Удалить</button>
+          </div>`).join('');
+    },
+
+    async loadChat() {
+      try {
+        const data = await this.req('/api/admin/chat');
+        this._renderChat(data.messages || []);
+      } catch (e) { document.getElementById('chat-list').innerHTML = '<div class="empty">' + this.esc(e.message) + '</div>'; }
+    },
+
+    async deleteChatMsg(id) {
+      if (!confirm('Удалить сообщение из чата?')) return;
+      try {
+        const r = await this.req('/api/admin/chat/' + encodeURIComponent(id), { method: 'DELETE' });
+        this._renderChat(r.messages || []);
+      } catch (e) { alert(e.message); }
+    },
+
+    /* ---------- Push-дашборд ---------- */
+    async loadPush() {
+      try {
+        const data = await this.req('/api/admin/push');
+        document.getElementById('push-total').textContent = data.total;
+        const users = data.users || [];
+        const el = document.getElementById('push-list');
+        el.innerHTML = users.length === 0
+          ? '<div class="empty">Подписчиков нет</div>'
+          : `<table class="table">
+              <tr><th>Логин</th><th class="num">Устройств</th><th>Подписан</th><th></th></tr>
+              ${users.map(u => `<tr>
+                <td><b>${this.esc(u.login)}</b></td>
+                <td class="num">${u.endpoints}</td>
+                <td>${this.esc((u.created || '—').slice(0, 10))}</td>
+                <td><button class="danger small" onclick="Admin.unsubscribePush('${this.esc(u.login)}')">Отписать</button></td>
+              </tr>`).join('')}
+            </table>`;
+      } catch (e) { document.getElementById('push-list').innerHTML = '<div class="empty">' + this.esc(e.message) + '</div>'; }
+    },
+
+    async unsubscribePush(login) {
+      if (!confirm('Отписать ' + login + ' от push-уведомлений?')) return;
+      try {
+        const r = await this.req('/api/admin/push/' + encodeURIComponent(login), { method: 'DELETE' });
+        document.getElementById('push-total').textContent = r.total;
+        this.loadPush();
+      } catch (e) { alert(e.message); }
+    },
+
+    /* ---------- Загрузки ---------- */
+    async loadUploads() {
+      try {
+        const data = await this.req('/api/admin/uploads');
+        const files = data.files || [];
+        const el = document.getElementById('uploads-list');
+        el.innerHTML = files.length === 0
+          ? '<div class="empty">Нет загруженных файлов</div>'
+          : files.map(f => `
+            <div class="ticket">
+              <div class="topic">📄 ${this.esc(f.name)}
+                <button class="small secondary" onclick="Admin.copyText('${f.url}')">Скопировать URL</button>
+              </div>
+              <div class="meta">${f.size} байт · ${this.esc(f.mtime)} · <a href="${f.url}" target="_blank" rel="noopener">открыть</a></div>
+              <button class="danger small" onclick="Admin.deleteUpload('${this.esc(f.name)}')">Удалить</button>
+            </div>`).join('');
+      } catch (e) { document.getElementById('uploads-list').innerHTML = '<div class="empty">' + this.esc(e.message) + '</div>'; }
+    },
+
+    async uploadFiles() {
+      const input = document.getElementById('upload-input');
+      if (!input.files || !input.files.length) { this.setStatus('upload-status', 'Выберите файлы', true); return; }
+      this.setStatus('upload-status', 'Загружаю…');
+      try {
+        for (const file of Array.from(input.files)) {
+          const fd = new FormData();
+          fd.append('file', file);
+          const resp = await fetch('/api/admin/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + this.token() }, body: fd });
+          if (!resp.ok) throw new Error(await resp.text());
+        }
+        input.value = '';
+        this.setStatus('upload-status', 'Готово ✅');
+        this.loadUploads();
+      } catch (e) { this.setStatus('upload-status', e.message, true); }
+    },
+
+    async deleteUpload(name) {
+      if (!confirm('Удалить файл ' + name + '?')) return;
+      try {
+        await this.req('/api/admin/uploads/' + encodeURIComponent(name), { method: 'DELETE' });
+        this.loadUploads();
+      } catch (e) { alert(e.message); }
+    },
+
+    copyText(text) {
+      navigator.clipboard.writeText(text).then(() => alert('URL скопирован: ' + text)).catch(() => alert(text));
+    },
+
+    /* ---------- Ответы на обращения ---------- */
+    async answerTicket(id, btn) {
+      const ticket = btn.closest('.ticket');
+      const textEl = ticket.querySelector('.ticket-answer');
+      const text = (textEl.value || '').trim();
+      if (!text) { alert('Введите текст ответа'); return; }
+      const sel = ticket.querySelector('select');
+      try {
+        await this.req('/api/admin/tickets/' + encodeURIComponent(id) + '/answer', {
+          method: 'POST',
+          body: JSON.stringify({ status: sel ? sel.value : 'in-progress', answer: text })
+        });
+        this.setStatus('tickets-status', 'Ответ отправлен студенту');
+        this.loadTickets();
+      } catch (e) { this.setStatus('tickets-status', e.message, true); }
+    },
+
+    /* ---------- Смена пароля администратора ---------- */
+    async changePassword() {
+      const cur = prompt('Текущий пароль администратора:');
+      if (cur === null) return;
+      const next = prompt('Новый пароль (минимум 4 символа):');
+      if (next === null) return;
+      const again = prompt('Повторите новый пароль:');
+      if (again === null) return;
+      if (next !== again) { alert('Пароли не совпадают'); return; }
+      try {
+        const r = await this.req('/api/admin/change-password', { method: 'POST', body: JSON.stringify({ current: cur, new_password: next }) });
+        localStorage.setItem(this.TOKEN_KEY, r.token);
+        alert('Пароль изменён. Новая сессия сохранена.');
+        location.reload();
+      } catch (e) { alert(e.message); }
+    }
+  };
+
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('app-box').classList.contains('hidden')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 6) {
+      const tabs = ['overview', 'news', 'top', 'attendance', 'tickets', 'backup'];
+      Admin.go(tabs[n - 1]);
+    }
+  });
+
+  Admin.applyTheme();
+  const t = new Date();
+  document.getElementById('page-ts').textContent = t.toLocaleString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' });
+
+  if (location.hash) Admin.go();
+  if (localStorage.getItem(Admin.TOKEN_KEY)) Admin.login().catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+
+# Windows EXE build artifacts
+build/
+dist/
+*.spec
+
+# Secrets & private keys
+.env
+backend/vapid_keys.json
+backend/subscriptions.json
+backend/admin_pass.json
+
+# Personal / student data (kept local & on hosting)
+backend/data/
+data/
+uploads/
+
+# Misc
+*.zip
+*.log
