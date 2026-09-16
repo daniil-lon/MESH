@@ -12,7 +12,7 @@
   --primary-dark: #4338ca;
   --bg: #eef1fb;
   --bg-soft: #f7f9ff;
-  --card: #ffffff;
+  --card: rgba(255, 255, 255, 0.72);
   --text: #0f172a;
   --text-secondary: #64748b;
   --border: #e4e7f4;
@@ -26,16 +26,25 @@
   --violet: #7c3aed;
   --accent: #4f46e5;
   --accent-soft: rgba(79, 70, 229, 0.12);
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 14px 34px -20px rgba(79, 70, 229, 0.28);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 18px 40px -22px rgba(79, 70, 229, 0.35);
   --shadow-pop: 0 18px 50px -12px rgba(15, 23, 42, 0.35);
   --radius: 18px;
   --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom);
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(180deg, #e7ebfb 0%, var(--bg-soft) 34%, var(--bg) 100%) fixed;
+  background:
+    radial-gradient(60% 45% at 88% -8%, rgba(124, 58, 237, 0.1), transparent 60%),
+    radial-gradient(52% 40% at 0% 6%, rgba(79, 70, 229, 0.13), transparent 60%),
+    radial-gradient(70% 55% at 92% 62%, rgba(14, 165, 233, 0.1), transparent 60%),
+    linear-gradient(180deg, #edf2ff 0%, var(--bg-soft) 34%, var(--bg) 100%) fixed;
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
@@ -43,10 +52,36 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+body::before {
+  width: 340px;
+  height: 340px;
+  top: -90px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.26), transparent 70%);
+}
+
+body::after {
+  width: 420px;
+  height: 420px;
+  bottom: -130px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.2), transparent 70%);
+}
+
 .screen {
   display: none;
   min-height: 100vh;
-  padding-bottom: 110px;
+  padding-bottom: 140px;
 }
 
 .screen.active {
@@ -319,18 +354,23 @@ body {
 /* BOTTOM NAV */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  border-top: 1px solid rgba(228, 231, 244, 0.8);
+  bottom: 14px;
+  bottom: calc(var(--safe-bottom) + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 520px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(26px) saturate(190%);
+  -webkit-backdrop-filter: blur(26px) saturate(190%);
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  box-shadow: 0 16px 44px -16px rgba(15, 23, 42, 0.28);
   display: flex;
   justify-content: space-around;
   align-items: stretch;
   gap: 2px;
-  padding: 8px 8px calc(var(--safe-bottom) + 10px);
+  padding: 7px 10px calc(env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 100;
 }
 
@@ -1169,7 +1209,7 @@ body {
 [data-theme="dark"] {
   --bg: #101422;
   --bg-soft: #171c2e;
-  --card: #1b2136;
+  --card: rgba(27, 33, 54, 0.68);
   --text: #e7e9f4;
   --text-secondary: #9aa3c0;
   --border: #2d3450;
@@ -1179,11 +1219,23 @@ body {
   --primary-dark: #6366f1;
   --accent: #818cf8;
   --accent-soft: rgba(129, 140, 248, 0.16);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px -24px rgba(99, 102, 241, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 20px 44px -26px rgba(99, 102, 241, 0.55);
 }
 
 [data-theme="dark"] body {
-  background: linear-gradient(180deg, #0d111f 0%, #141a2e 40%, #161c30 100%) fixed;
+  background:
+    radial-gradient(60% 45% at 88% -8%, rgba(124, 58, 237, 0.16), transparent 60%),
+    radial-gradient(52% 40% at 0% 6%, rgba(99, 102, 241, 0.2), transparent 60%),
+    linear-gradient(180deg, #0d111f 0%, #141a2e 40%, #161c30 100%) fixed;
+}
+
+[data-theme="dark"] body::before {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
+}
+
+[data-theme="dark"] body::after {
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.18), transparent 70%);
 }
 
 [data-theme="dark"] .screen-header,
@@ -2082,7 +2134,7 @@ body.print-spravka > *:not(.print-area) { display: none !important; }
 .search-hit em { display:block; font-style:normal; font-size:12px; opacity:.65; }
 
 /* Сова */
-.sova-widget { position:fixed; right:16px; bottom:84px; z-index:110; display:flex; flex-direction:column; align-items:flex-end; }
+.sova-widget { position:fixed; right:16px; bottom:116px; z-index:110; display:flex; flex-direction:column; align-items:flex-end; }
 .sova-fab { width:56px; height:56px; border-radius:50%; border:none; background:transparent; cursor:pointer; filter:drop-shadow(0 4px 10px rgba(0,0,0,.25)); }
 .sova-panel { width:300px; max-width:calc(100vw - 32px); background:var(--bg, #fff); border:1px solid var(--border, rgba(0,0,0,.1)); border-radius:14px; margin-bottom:8px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column; max-height:70vh; }
 .sova-head { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--accent, #2563eb); color:#fff; border-radius:14px 14px 0 0; font-weight:700; }
@@ -2758,3 +2810,54 @@ body.print-spravka > *:not(.print-area) { display: none !important; }
   .bottom-nav, .screen-header, #sova-widget, .ptr, .profile-action-btn, .row-space-top button { display: none !important; }
   .screen { display: block !important; min-height: 0 !important; padding-bottom: 0 !important; }
 }
+
+/* ===== IOS GLASSMORPHISM (стеклянные карточки) ===== */
+.lesson-card, .grade-item, .homework-card, .profile-card, .profile-info,
+.stat-card, .grade-stat, .news-card, .today-card, .replacement-card,
+.exam-card, .mat-card, .prep-card, .ticket-form, .ticket-item,
+.attendance-day, .attendance-summary, .settings-card, .achievements-card,
+.grades-chart-card, .exam-access-card, .bells-panel, .quick-item,
+.today-menu-row, .poll-option, .hw-item, .rating-row, .saved-acc-btn,
+.goal-card, .mode-segment, .modal-card, .pomo-card, .onboarding-card, .student-card {
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid var(--glass-border);
+}
+
+@media print {
+  .lesson-card, .grade-item, .homework-card, .profile-card, .profile-info,
+  .stat-card, .grade-stat, .news-card, .today-card, .replacement-card,
+  .exam-card, .mat-card, .prep-card, .ticket-form, .ticket-item,
+  .attendance-day, .attendance-summary, .settings-card, .achievements-card,
+  .grades-chart-card, .exam-access-card, .bells-panel, .quick-item,
+  .poll-option, .modal-card, .pomo-card, .onboarding-card, .student-card {
+    background: #fff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+[data-theme="dark"] .lesson-card, [data-theme="dark"] .grade-item,
+[data-theme="dark"] .homework-card, [data-theme="dark"] .profile-card,
+[data-theme="dark"] .profile-info, [data-theme="dark"] .stat-card,
+[data-theme="dark"] .grade-stat, [data-theme="dark"] .news-card,
+[data-theme="dark"] .today-card, [data-theme="dark"] .replacement-card,
+[data-theme="dark"] .exam-card, [data-theme="dark"] .mat-card,
+[data-theme="dark"] .prep-card, [data-theme="dark"] .ticket-form,
+[data-theme="dark"] .ticket-item, [data-theme="dark"] .attendance-day,
+[data-theme="dark"] .attendance-summary, [data-theme="dark"] .settings-card,
+[data-theme="dark"] .achievements-card, [data-theme="dark"] .grades-chart-card,
+[data-theme="dark"] .exam-access-card, [data-theme="dark"] .bells-panel,
+[data-theme="dark"] .quick-item, [data-theme="dark"] .mode-segment {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.icon-btn {
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--glass-border);
+}
+
+.news-card--important { border-color: #dc2626; }
+.today-card--debts { border-color: #fca5a5; }
+.today-card--ok { border-color: #6ee7b7; }
