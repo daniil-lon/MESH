@@ -1,11 +1,11 @@
-const CACHE_NAME = 'mesh-pwa-v18';
-const STATIC_CACHE = 'mesh-static-v18';
+const CACHE_NAME = 'mesh-pwa-v19';
+const STATIC_CACHE = 'mesh-static-v19';
 const API_CACHE = 'mesh-api-v2';
 
 const staticUrls = [
   '/',
   '/index.html',
-  '/css/style.min.css',
+  '/css/style.min.css?v=19',
   '/js/app.js',
   '/js/auth.js',
   '/js/api.js',
