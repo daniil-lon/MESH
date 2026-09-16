@@ -257,7 +257,8 @@ STUDENTS = load_students()
 CURATORS = load_curators()
 SESSION_USERS: Dict[str, dict] = {}
 
-DATA_DIR = BASE_DIR / "backend" / "data"
+DATA_DIR = Path(os.getenv("MESH_DATA_DIR") or (BASE_DIR / "backend" / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 NEWS_FILE = DATA_DIR / "news.json"
 REPLACEMENTS_FILE = DATA_DIR / "replacements.json"
 EXAMS_FILE = DATA_DIR / "exams.json"
@@ -305,7 +306,7 @@ DATA_FILES_MAP = {
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "1111")
 ADMIN_PASS_FILE = DATA_DIR / "admin_pass.json"
 SCHEDULED_POSTS_FILE = DATA_DIR / "scheduled_posts.json"
-UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR = Path(os.getenv("MESH_UPLOADS_DIR") or (BASE_DIR / "uploads"))
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 

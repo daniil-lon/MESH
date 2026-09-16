@@ -2,22 +2,15 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/main.py",
-      "use": "@vercel/python"
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": { "maxDuration": 30 }
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "backend/main.py"
-    },
-    {
-      "src": "/auth/(.*)",
-      "dest": "backend/main.py"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "api/index.py"
     }
   ]
 }

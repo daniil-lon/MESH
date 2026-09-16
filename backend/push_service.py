@@ -5,8 +5,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-KEYS_FILE = BASE_DIR / "vapid_keys.json"
-SUBS_FILE = BASE_DIR / "subscriptions.json"
+_KEYS_DIR = Path(os.getenv("MESH_KEYS_DIR") or BASE_DIR)
+_KEYS_DIR.mkdir(parents=True, exist_ok=True)
+KEYS_FILE = _KEYS_DIR / "vapid_keys.json"
+SUBS_FILE = _KEYS_DIR / "subscriptions.json"
 
 try:
     from py_vapid import Vapid02 as _V2
