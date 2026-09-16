@@ -13,6 +13,6 @@ for _d in ("/tmp/mesh/data", "/tmp/mesh/uploads", "/tmp/mesh"):
     os.makedirs(_d, exist_ok=True)
 
 from a2wsgi import ASGIMiddleware
-from backend.main import app
+from backend.main import app as fastapi_app
 
-application = ASGIMiddleware(app)
+app = ASGIMiddleware(fastapi_app)
