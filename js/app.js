@@ -1904,8 +1904,43 @@ startBellCountdown(dayKey, bells) {
     }
   },
 
-  exportCalendar() {
+  exportScheduleCsv() {
+    const dayNames = { mon: 'Понедельник', tue: 'Вторник', wed: 'Среда', thu: 'Четверг', fri: 'Пятница', sat: 'Суббота' };
     const stream = this.currentStream || 'alfa';
+    const group = this.getGroup();
+    const rows = [];
+    rows.push(['День', 'Пара', 'Время', 'Предмет', 'Преподаватель', 'Аудитория']);
+    let pending = 0;
+    const finish = () => {
+      if (pending > 0) return;
+      let csv = '\ufeff' + rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `schedule_${group || 'student'}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    };
+    for (const day of ['mon', 'tue', 'wed', 'thu', 'fri', 'sat']) {
+      pending++;
+      API.getSchedule(day, stream, group).then(data => {
+        const lessons = (data && data.lessons) || [];
+        if (lessons.length) {
+          rows.push([dayNames[day], '', '', '', '', '']);
+          lessons.forEach(l => {
+            rows.push([dayNames[day], l.pair || '', `${l.time_start || ''}–${l.time_end || ''}`, l.subject || '', l.teacher || '', l.room || '']);
+          });
+        }
+        pending--;
+        finish();
+      }).catch(() => { pending--; finish(); });
+    }
+  },
+
+  exportCalendar() {
     const days = ['mon', 'tue', 'wed', 'thu', 'fri'];
     const now = new Date();
     const diffToMonday = (now.getDay() + 6) % 7;
