@@ -519,6 +519,7 @@ toggleSova() {
     this.ensurePushSubscription();
     requestAnimationFrame(() => this.slideNavIndicator());
     window.addEventListener('resize', () => this.slideNavIndicator());
+    API.getNews().then(news => this.refreshNewsBadge(news)).catch(() => {});
   },
 
 showLogin() {
@@ -746,6 +747,9 @@ showLogin() {
 
   renderSchedule(lessons) {
     const container = document.getElementById('schedule-content');
+    const real = lessons.filter(l => l.subject !== 'Окно');
+    this.updateScheduleHeader(real);
+
     if (!lessons.length) {
       container.innerHTML = `
         <div class="empty-state">
@@ -758,8 +762,8 @@ showLogin() {
       return;
     }
 
-    container.innerHTML = lessons.map(l => `
-      <div class="lesson-card">
+    container.innerHTML = lessons.map((l, i) => `
+      <div class="lesson-card" style="animation-delay:${Math.min(i * 55, 330)}ms">
         <div class="lesson-pair">${l.pair} пара</div>
         <div class="lesson-time">
           <span class="time-start">${l.time_start}</span>
@@ -774,6 +778,30 @@ showLogin() {
         <div class="lesson-type lesson-type--${l.type}">${l.type === 'lection' ? 'Лекция' : 'Практика'}</div>
         <div class="lesson-transition">переход в ${l.transition}</div>
       </div>`).join('');
+
+    container.classList.remove('day-anim');
+    void container.offsetWidth;
+    container.classList.add('day-anim');
+  },
+
+  updateScheduleHeader(real) {
+    const el = document.getElementById('current-date');
+    if (!el) return;
+    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const weekdays = { mon: 'Понедельник', tue: 'Вторник', wed: 'Среда', thu: 'Четверг', fri: 'Пятница', sat: 'Суббота', sun: 'Воскресенье' };
+    const now = new Date();
+    const isToday = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][now.getDay()] === this.currentDay;
+    const parts = [weekdays[this.currentDay] || ''];
+    if (isToday) parts.push(`${now.getDate()} ${months[now.getMonth()]}`);
+    if (real && real.length) {
+      const n = real.length;
+      const word = n === 1 ? 'пара' : (n >= 2 && n <= 4 ? 'пары' : 'пар');
+      parts.push(`${n} ${word}`);
+    } else {
+      parts.push('занятий нет');
+    }
+    el.textContent = parts.join(' · ');
   },
 
   updateNextLesson(lessons) {
@@ -955,8 +983,39 @@ showLogin() {
     if (!keep) this.showSkeleton('news-content');
     Promise.all([API.getNews(), API.getNewsMeta()]).then(([news, meta]) => {
       this.newsMeta = meta || { likes: {}, comments: {} };
-      if (news) this.renderNews(news);
+      if (news) {
+        this.refreshNewsBadge(news);
+        this.renderNews(news);
+      }
     });
+  },
+
+  refreshNewsBadge(news) {
+    const el = document.getElementById('news-badge');
+    if (!el) return;
+    if (!news || !news.length) { el.style.display = 'none'; return; }
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('mesh_news_seen') || '[]'); } catch (e) {}
+    const unread = news.filter(n => seen.indexOf(String(n.id || n.title || '')) === -1).length;
+    if (unread > 0) {
+      el.textContent = unread > 9 ? '9+' : String(unread);
+      el.style.display = 'flex';
+    } else {
+      el.style.display = 'none';
+    }
+  },
+
+  markNewsSeen(data) {
+    if (!data || !data.length) return;
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('mesh_news_seen') || '[]'); } catch (e) {}
+    data.forEach(n => {
+      const id = String(n.id || n.title || '');
+      if (seen.indexOf(id) === -1) seen.push(id);
+    });
+    localStorage.setItem('mesh_news_seen', JSON.stringify(seen.slice(-200)));
+    const el = document.getElementById('news-badge');
+    if (el) el.style.display = 'none';
   },
 
   renderNews(data) {
@@ -1005,6 +1064,7 @@ showLogin() {
       </div>`;
     }).join('');
     this.autoMarkReads(data);
+    this.markNewsSeen(data);
   },
 
   autoMarkReads(data) {
@@ -2894,6 +2954,162 @@ startBellCountdown(dayKey, bells) {
     a.remove();
   },
 
+  async shareProgress() {
+    const user = JSON.parse(localStorage.getItem('mesh_user') || '{}');
+    try {
+      const [grades, rank, attendance] = await Promise.all([
+        API.getGrades(), API.getRank(), API.getAttendance()
+      ]);
+      const avg = (grades && grades.average) || '—';
+      const total = (grades && grades.total) || 0;
+      const place = (rank && rank.place) || null;
+      const att = attendance && typeof attendance.attendance === 'number' ? attendance.attendance : null;
+      const blob = await this.buildProgressImage({ user, avg, total, place, att, subjects: (grades && grades.subjects) || [] });
+      const file = new File([blob], 'progress.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Мои успехи',
+            text: `${user.name || ''}: средний балл ${avg}`
+          });
+          return;
+        } catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'progress.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) {
+      console.error(e);
+    }
+  },
+
+  buildProgressImage({ user, avg, total, place, att, subjects }) {
+    return new Promise(resolve => {
+      const W = 1080, H = 1080;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const ctx = c.getContext('2d');
+      const cs = getComputedStyle(document.documentElement);
+      const accent = (cs.getPropertyValue('--primary') || '#5b5bd6').trim() || '#5b5bd6';
+
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, '#1e1b4b');
+      grad.addColorStop(0.55, accent);
+      grad.addColorStop(1, '#4c1d95');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.globalAlpha = 0.12;
+      for (const [x, y, r] of [[180, 200, 260], [900, 320, 200], [780, 900, 300], [220, 880, 180]]) {
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff'; ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      this.roundRect(ctx, 70, 70, W - 140, H - 140, 48);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 3;
+      this.roundRect(ctx, 70, 70, W - 140, H - 140, 48);
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 40px -apple-system, Segoe UI, sans-serif';
+      ctx.fillText('IT Москва Колледж', 130, 175);
+
+      ctx.font = '800 74px -apple-system, Segoe UI, sans-serif';
+      const name = String(user.name || 'Студент');
+      ctx.fillText(name.length > 20 ? name.slice(0, 19) + '…' : name, 130, 275);
+
+      ctx.font = '500 34px -apple-system, Segoe UI, sans-serif';
+      ctx.globalAlpha = 0.85;
+      ctx.fillText((user.group ? 'Группа ' + user.group : '') + (place ? '  ·  ' + place + ' место в группе' : ''), 130, 335);
+      ctx.globalAlpha = 1;
+
+      const metrics = [
+        ['Средний балл', String(avg)],
+        ['Оценок', String(total)],
+        ['Посещаемость', att != null ? att + '%' : '—']
+      ];
+      metrics.forEach((m, i) => {
+        const x = 130 + i * 280;
+        ctx.fillStyle = 'rgba(255,255,255,0.16)';
+        this.roundRect(ctx, x, 400, 250, 210, 32); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 76px -apple-system, Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(m[1], x + 125, 510);
+        ctx.font = '500 28px -apple-system, Segoe UI, sans-serif';
+        ctx.globalAlpha = 0.8;
+        ctx.fillText(m[0], x + 125, 565);
+        ctx.globalAlpha = 1;
+      });
+
+      ctx.textAlign = 'left';
+      ctx.font = '600 34px -apple-system, Segoe UI, sans-serif';
+      ctx.fillText('Лучшие предметы', 130, 700);
+      const top = subjects.slice().map(s => ({ n: s.name, a: parseFloat(s.average) || 0 }))
+        .sort((a, b) => b.a - a.a).slice(0, 4);
+      top.forEach((s, i) => {
+        const y = 750 + i * 62;
+        ctx.font = '500 32px -apple-system, Segoe UI, sans-serif';
+        ctx.globalAlpha = 0.9;
+        ctx.fillText(s.n.length > 26 ? s.n.slice(0, 25) + '…' : s.n, 130, y);
+        ctx.textAlign = 'right';
+        ctx.font = '700 32px -apple-system, Segoe UI, sans-serif';
+        ctx.fillText(s.a.toFixed(2), W - 150, y);
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+      });
+
+      ctx.globalAlpha = 0.7;
+      ctx.font = '500 26px -apple-system, Segoe UI, sans-serif';
+      ctx.fillText('mesh-psi.vercel.app · ' + new Date().toLocaleDateString('ru-RU'), 130, H - 120);
+      ctx.globalAlpha = 1;
+
+      c.toBlob(b => resolve(b), 'image/png');
+    });
+  },
+
+  roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  },
+
+  burstConfetti(el) {
+    const rect = el && el.getBoundingClientRect ? el.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 3, width: 0, height: 0 };
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const colors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7'];
+    for (let i = 0; i < 26; i++) {
+      const p = document.createElement('span');
+      p.className = 'confetti-bit';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 130;
+      p.style.left = cx + 'px';
+      p.style.top = cy + 'px';
+      p.style.background = colors[i % colors.length];
+      p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+      p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+      p.style.animationDelay = (Math.random() * 0.12) + 's';
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1100);
+    }
+  },
+
   teacherPutGrade(btn) {
     const login = btn.dataset.login;
     const subjEl = document.getElementById('tj-subject');
@@ -2906,6 +3122,8 @@ startBellCountdown(dayKey, bells) {
     }).then(res => {
       if (status) status.textContent = (res && res.ok) ? `Оценка ${valueEl.value} сохранена для ${login}` : ((res && res.data && res.data.detail) || 'Ошибка');
       if (res && res.ok) {
+        this.haptic && this.haptic();
+        this.burstConfetti(btn);
         API.teacherJournal().then(j => {
           this.journalData = j;
           this.renderJournal();

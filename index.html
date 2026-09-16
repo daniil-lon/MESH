@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/touch-icon-180.png">
-  <link rel="stylesheet" href="css/style.min.css?v=19">
+  <link rel="stylesheet" href="css/style.min.css?v=20">
 </head>
 <body>
 
@@ -622,6 +622,16 @@
           </span>
           <span class="quick-label">Электронный студенческий</span>
         </button>
+        <button class="quick-item" onclick="App.shareProgress()">
+          <span class="quick-icon qc-emerald">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+          </span>
+          <span class="quick-label">Поделиться успехами</span>
+        </button>
         <button class="quick-item" onclick="App.toggleLogins()">
           <span class="quick-icon qc-slate">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -930,6 +940,7 @@
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M22 6a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2h16a2 2 0 012 2zM2 6v14a2 2 0 002 2h16a2 2 0 002-2V6M2 10h20"/>
       </svg>
+      <span class="nav-badge" id="news-badge" style="display:none"></span>
       <span>Новости</span>
     </button>
     <button class="nav-item" data-screen="grades" onclick="App.navigateTo('grades')">

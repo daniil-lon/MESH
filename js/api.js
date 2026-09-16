@@ -129,7 +129,7 @@ const API = {
       const parsed = JSON.parse(raw);
       if (!allowStale) {
         const age = Date.now() - (parsed.timestamp || 0);
-        if (age > 15 * 60 * 1000) return null;
+        if (age > 24 * 60 * 60 * 1000) return null;
       }
       return parsed;
     } catch (e) {
