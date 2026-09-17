@@ -77,10 +77,29 @@ const App = {
       results.innerHTML = '<div class="sub-note">Введите минимум 2 символа</div>';
       return;
     }
-    Promise.all([API.getNews(), API.getMaterials(), API.getClubs(), API.getFaq(), API.getGrades(), API.getMyDebts()])
-      .then(([news, mat, clubs, faq, grades, debts]) => {
+    Promise.all([API.getNews(), API.getMaterials(), API.getClubs(), API.getFaq(), API.getGrades(), API.getMyDebts(), API.getWeekSchedule(this.currentStream || 'alfa', this.getGroup())])
+      .then(([news, mat, clubs, faq, grades, debts, week]) => {
         const out = [];
         const push = (icon, title, sub, action) => out.push(`<button class="search-hit" onclick="${action}">${icon}<span><b>${title}</b>${sub ? '<em>' + sub + '</em>' : ''}</span></button>`);
+
+        const dayNames = { mon: 'Пн', tue: 'Вт', wed: 'Ср', thu: 'Чт', fri: 'Пт', sat: 'Сб' };
+        const seenLessons = {};
+        const seenTeachers = {};
+        (week || []).forEach(({ day, lessons }) => {
+          (lessons || []).forEach(l => {
+            if (!l.subject || l.subject === 'Окно') return;
+            const lk = day + '|' + l.subject + '|' + l.pair;
+            if (!seenLessons[lk] && ((l.subject || '').toLowerCase().includes(q) || (l.room || '').toLowerCase().includes(q))) {
+              seenLessons[lk] = 1;
+              push('🗓', `${dayNames[day]} · ${l.subject}`, `${l.time_start} · ${l.room || ''}${l.teacher ? ' · ' + l.teacher : ''}`, `App.navigateTo('schedule')`);
+            }
+            const t = (l.teacher || '').trim();
+            if (t && t.toLowerCase().includes(q) && !seenTeachers[t]) {
+              seenTeachers[t] = 1;
+              push('👩‍🏫', t, `преподаватель · ${l.subject}`, `App.navigateTo('schedule')`);
+            }
+          });
+        });
 
         (news || []).filter(n => n && (n.title || '').toLowerCase().includes(q) || (n.body || '').toLowerCase().includes(q))
           .slice(0, 6).forEach(n => push('📰', n.title, n.date || '', `App.navigateTo('news')`));
@@ -380,10 +399,23 @@ toggleSova() {
     const update = () => {
       const el = document.getElementById('offline-banner');
       if (el) el.style.display = navigator.onLine ? 'none' : 'flex';
+      this.updateOfflinePending();
     };
     window.addEventListener('online', () => { update(); this.flushPrefsOnOnline(); this.flushOfflineQueue(); });
     window.addEventListener('offline', update);
     update();
+  },
+
+  updateOfflinePending() {
+    const el = document.getElementById('offline-pending');
+    if (!el) return;
+    const n = API.pendingCount();
+    if (n > 0) {
+      el.textContent = `${n} ${n === 1 ? 'действие' : (n < 5 ? 'действия' : 'действий')} ждёт отправки`;
+      el.style.display = 'inline';
+    } else {
+      el.style.display = 'none';
+    }
   },
 
   trackStreak() {
@@ -474,16 +506,23 @@ toggleSova() {
 
   flushOfflineQueue() {
     if (!navigator.onLine) return;
-    const q = JSON.parse(localStorage.getItem('mesh_offline_queue') || '[]');
-    if (!q.length) return;
+    let q = [];
+    try { q = JSON.parse(localStorage.getItem('mesh_offline_queue') || '[]'); } catch (e) {}
+    if (!q.length) { this.updateOfflinePending(); return; }
+    const legacy = q.filter(i => i.action);
+    const modern = q.filter(i => i.endpoint);
     const remain = [];
     let flushed = 0;
-    q.forEach(item => {
-      const sent = this.dispatchQueued(item);
-      if (sent) flushed++;
+    legacy.forEach(item => {
+      if (this.dispatchQueued(item)) flushed++;
       else remain.push(item);
     });
-    localStorage.setItem('mesh_offline_queue', JSON.stringify(remain));
+    localStorage.setItem('mesh_offline_queue', JSON.stringify(remain.concat(modern)));
+    if (modern.length) {
+      API.flushQueue().then(() => this.updateOfflinePending());
+    } else {
+      this.updateOfflinePending();
+    }
     if (flushed) this.loadTickets();
   },
 
@@ -1174,28 +1213,65 @@ showLogin() {
     container.innerHTML = html;
   },
 
-startBellCountdown(dayKey, bells) {
+  startBellCountdown(dayKey, bells) {
     if (this._bellTimer) { clearInterval(this._bellTimer); this._bellTimer = null; }
     const el = document.getElementById('today-countdown');
-    if (!el || !bells || dayKey === 'sun') return;
+    if (!el || dayKey === 'sun') return;
     const slots = [...(bells.first || []), ...(bells.second || [])];
-    const toMin = t => { const a = t.split(':').map(Number); return a[0] * 60 + a[1]; };
+    const toMin = t => { const a = String(t || '0:0').split(':').map(Number); return a[0] * 60 + a[1]; };
+    const pad = n => String(n).padStart(2, '0');
+    const fmtLeft = sec => {
+      if (sec < 0) sec = 0;
+      const m = Math.floor(sec / 60), s = sec % 60;
+      if (m >= 60) return `${Math.floor(m / 60)}ч ${pad(m % 60)}м`;
+      return `${pad(m)}:${pad(s)}`;
+    };
     const tick = () => {
       const now = new Date();
-      const cur = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      const nowMin = toMin(cur);
+      const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+      const nowMin = nowSec / 60;
+      let html = '';
       const active = slots.find(s => toMin(s.start) <= nowMin && nowMin < toMin(s.end));
-      let msg;
       if (active) {
-        msg = `До конца ${active.pair}-й пары: до ${active.end}`;
+        const endSec = toMin(active.end) * 60;
+        const startSec = toMin(active.start) * 60;
+        const span = Math.max(1, endSec - startSec);
+        const pct = Math.max(0, Math.min(100, Math.round((nowSec - startSec) / span * 100)));
+        html = `
+          <div class="bell-widget bell-widget--active">
+            <div class="bell-widget-head">
+              <span class="bell-widget-dot"></span>
+              <span class="bell-widget-label">Идёт ${active.pair}-я пара</span>
+            </div>
+            <div class="bell-widget-time">${fmtLeft(endSec - nowSec)}</div>
+            <div class="bell-widget-sub">до перемены · конец в ${active.end}</div>
+            <div class="bell-widget-bar"><div class="bell-widget-fill" style="width:${pct}%"></div></div>
+          </div>`;
       } else {
         const next = slots.find(s => toMin(s.start) > nowMin);
-        msg = next ? `Следующая пара в ${next.start}` : 'Учебный день окончен';
+        if (next) {
+          const startSec = toMin(next.start) * 60;
+          html = `
+            <div class="bell-widget">
+              <div class="bell-widget-head">
+                <span class="bell-widget-label">До ${next.pair}-й пары</span>
+              </div>
+              <div class="bell-widget-time">${fmtLeft(startSec - nowSec)}</div>
+              <div class="bell-widget-sub">звонок в ${next.start} · переход ${next.transition}</div>
+            </div>`;
+        } else {
+          html = `
+            <div class="bell-widget bell-widget--done">
+              <div class="bell-widget-head"><span class="bell-widget-label">Учебный день окончен</span></div>
+              <div class="bell-widget-time">🎉</div>
+              <div class="bell-widget-sub">Отдыхай — завтра новый день</div>
+            </div>`;
+        }
       }
-      el.textContent = msg;
+      el.innerHTML = html;
     };
     tick();
-    this._bellTimer = setInterval(tick, 30000);
+    this._bellTimer = setInterval(tick, 1000);
   },
 
   loadToday() {
@@ -1257,7 +1333,7 @@ startBellCountdown(dayKey, bells) {
         const first = real[0];
         html += `<div class="today-card-sub">Ближайшая пара: <b>${first.subject}</b>, ${first.time_start}, ${first.room}</div>`;
         html += `<div class="today-card-sub">Всего пар сегодня: ${real.length}</div>`;
-        html += `<div class="today-countdown" id="today-countdown"></div>`;
+        html += `<div class="today-countdown bell-wrap" id="today-countdown"></div>`;
       } else {
         html += `<div class="today-card-sub">Сегодня занятий нет</div>`;
       }
@@ -2337,18 +2413,21 @@ startBellCountdown(dayKey, bells) {
         const due = new Date(now.getFullYear(), month, day, hr, mn);
         if (isNaN(due.getTime()) || due.getTime() < now.getTime()) continue;
         const within = due.getTime() - now.getTime();
-        if (within > 0 && within <= 24 * 3600 * 1000) {
-          const key = 'mesh_hw_note_' + encodeURIComponent(h.task) + '_' + due.toDateString();
-          if (localStorage.getItem(key)) continue;
-          localStorage.setItem(key, '1');
-          try {
-            const n = new Notification('Дедлайн близко', {
-              body: `${h.subject}: ${h.task} — сдать до ${h.deadline}`,
-              icon: '/icons/icon-192.png'
-            });
-            n.onclick = () => { window.focus(); this.navigateTo('homework'); };
-          } catch (e) {}
-        }
+        if (within <= 0 || within > 48 * 3600 * 1000) continue;
+        const soon = within <= 24 * 3600 * 1000;
+        const label = soon ? 'Сегодня дедлайн' : 'Завтра дедлайн';
+        const key = 'mesh_hw_note_' + encodeURIComponent(h.task) + '_' + due.toDateString() + (soon ? '_24' : '_48');
+        if (localStorage.getItem(key)) continue;
+        localStorage.setItem(key, '1');
+        try {
+          const n = new Notification(label, {
+            body: `${h.subject}: ${h.task} — сдать до ${h.deadline}`,
+            icon: '/icons/icon-512.png',
+            badge: '/icons/icon-192.png'
+          });
+          if ('vibrate' in navigator) { navigator.vibrate([160, 70, 160]); }
+          n.onclick = () => { window.focus(); this.navigateTo('homework'); };
+        } catch (e) {}
       }
     });
   },

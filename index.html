@@ -10,8 +10,11 @@
   <title>IT Москва Колледж</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/touch-icon-180.png">
-  <link rel="stylesheet" href="css/style.min.css?v=20">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/apple-touch-icon-120.png">
+  <link rel="stylesheet" href="css/style.min.css?v=21">
 </head>
 <body>
 
@@ -60,6 +63,12 @@
             <span id="stream-text">Бета · Второй поток</span>
           </div>
         </div>
+        <button class="icon-btn" id="btn-search" onclick="App.showSearch()" title="Поиск (Ctrl+K)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
         <button class="icon-btn" id="btn-today" onclick="App.navigateTo('today')" title="Мой день">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
@@ -918,6 +927,7 @@
       <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.58 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/>
     </svg>
     <span>Нет соединения — показано сохранённое расписание</span>
+    <span id="offline-pending" class="offline-pending" style="display:none;"></span>
   </div>
 
   <!-- НИЖНАЯ НАВИГАЦИЯ -->

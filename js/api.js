@@ -157,6 +157,12 @@ const API = {
     return this.request(endpoint);
   },
 
+  async getWeekSchedule(stream, group) {
+    const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const res = await Promise.all(days.map(d => this.getSchedule(d, stream, group)));
+    return days.map((d, i) => ({ day: d, lessons: (res[i] && res[i].lessons) || [] }));
+  },
+
   getGrades() {
     return this.request('/grades');
   },
@@ -210,7 +216,10 @@ const API = {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ topic, text })
-    }).then(r => r.json()).catch(() => ({ ok: false }));
+    }).then(r => r.json()).catch(() => {
+      this.enqueue({ endpoint: '/tickets', body: { topic, text }, method: 'POST' });
+      return { ok: true, queued: true };
+    });
   },
 
   getPublic(endpoint) {
@@ -254,7 +263,10 @@ const API = {
     const token = Auth.getToken();
     return fetch(`${this.BASE_URL}/news/${encodeURIComponent(id)}/like`, {
       method: 'POST', headers: { 'Authorization': `Bearer ${token}` }
-    }).then(r => r.json()).catch(() => ({ liked: false }));
+    }).then(r => r.json()).catch(() => {
+      this.enqueue({ endpoint: `/news/${encodeURIComponent(id)}/like`, method: 'POST' });
+      return { liked: true, queued: true };
+    });
   },
 
   unlikeNews(id) {
@@ -270,7 +282,10 @@ const API = {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
-    }).then(r => r.json().catch(() => ({ comments: [] })));
+    }).then(r => r.json().catch(() => ({ comments: [] }))).catch(() => {
+      this.enqueue({ endpoint: `/news/${encodeURIComponent(id)}/comment`, body: { text }, method: 'POST' });
+      return { comments: [], queued: true };
+    });
   },
 
   getFreeRooms() {
@@ -286,7 +301,60 @@ const API = {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
-    }).then(async r => ({ ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) }));
+    }).then(async r => ({ ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) }))
+      .catch(() => {
+        if (this.isQueueable(endpoint)) {
+          this.enqueue({ endpoint, body, method });
+          return { ok: true, queued: true, data: {} };
+        }
+        return { ok: false, offline: true, data: {} };
+      });
+  },
+
+  isQueueable(endpoint) {
+    if (endpoint.indexOf('/me/password') === 0) return false;
+    return /^\/(news|chat|teacher|curator|polls)/.test(endpoint);
+  },
+
+  enqueue(action) {
+    try {
+      const q = JSON.parse(localStorage.getItem('mesh_offline_queue') || '[]');
+      q.push({ endpoint: action.endpoint, body: action.body, method: action.method || 'POST', ts: Date.now() });
+      localStorage.setItem('mesh_offline_queue', JSON.stringify(q.slice(-50)));
+      if (typeof App !== 'undefined' && App.updateOfflinePending) App.updateOfflinePending();
+    } catch (e) {}
+  },
+
+  pendingCount() {
+    try { return JSON.parse(localStorage.getItem('mesh_offline_queue') || '[]').length; }
+    catch (e) { return 0; }
+  },
+
+  async flushQueue() {
+    let q = [];
+    try { q = JSON.parse(localStorage.getItem('mesh_offline_queue') || '[]'); } catch (e) {}
+    if (!q.length) return 0;
+    const modern = q.filter(a => a && a.endpoint);
+    const others = q.filter(a => !(a && a.endpoint));
+    if (!modern.length) return q.length;
+    const remaining = [];
+    for (const a of modern) {
+      try {
+        const token = Auth.getToken();
+        if (!token) { remaining.push(a); continue; }
+        const r = await fetch(`${this.BASE_URL}${a.endpoint}`, {
+          method: a.method || 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: a.body != null ? JSON.stringify(a.body) : undefined
+        });
+        if (!r.ok && r.status >= 500) remaining.push(a);
+      } catch (e) {
+        remaining.push(a);
+      }
+    }
+    try { localStorage.setItem('mesh_offline_queue', JSON.stringify(others.concat(remaining))); } catch (e) {}
+    if (typeof App !== 'undefined' && App.updateOfflinePending) App.updateOfflinePending();
+    return remaining.length;
   },
 
   changePassword(current, newPassword) {

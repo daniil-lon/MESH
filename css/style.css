@@ -2135,6 +2135,57 @@ body.print-spravka > *:not(.print-area) { display: none !important; }
 .teacher-pairs { margin-top:6px; }
 .sub-note { font-size:13px; opacity:.7; margin:4px 0; }
 .today-countdown { margin-top:6px; font-weight:600; color: var(--accent, #2563eb); }
+
+/* Виджет ближайшего звонка */
+.bell-wrap { margin-top: 12px; }
+.bell-widget {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, .16), rgba(76, 29, 149, .12));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, .5));
+  overflow: hidden;
+}
+.bell-widget-head { display: flex; align-items: center; gap: 8px; }
+.bell-widget-label { font-size: 13px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--primary); }
+.bell-widget-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, .6);
+  animation: bellPulse 1.6s infinite;
+}
+@keyframes bellPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); }
+  70% { box-shadow: 0 0 0 9px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+.bell-widget-time {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text, #1e293b);
+}
+.bell-widget-sub { font-size: 13px; opacity: .7; }
+.bell-widget-bar { margin-top: 8px; height: 6px; border-radius: 4px; background: rgba(99, 102, 241, .18); overflow: hidden; }
+.bell-widget-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), var(--violet, #7c3aed)); transition: width 1s linear; }
+.bell-widget--active .bell-widget-label { color: #16a34a; }
+.bell-widget--done .bell-widget-time { font-size: 34px; }
+
+[data-theme="dark"] .bell-widget { background: linear-gradient(135deg, rgba(129, 140, 248, .16), rgba(76, 29, 149, .28)); }
+
+.offline-pending {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .22);
+  font-size: 11px;
+  font-weight: 700;
+}
 .chat-input-row { display:flex; gap:8px; margin:10px 0 4px; }
 .chat-send { min-width:54px; }
 #chat-box { max-height: 320px; overflow:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:4px; }

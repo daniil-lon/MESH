@@ -1,15 +1,20 @@
-const CACHE_NAME = 'mesh-pwa-v20';
-const STATIC_CACHE = 'mesh-static-v20';
+const CACHE_NAME = 'mesh-pwa-v21';
+const STATIC_CACHE = 'mesh-static-v21';
 const API_CACHE = 'mesh-api-v2';
 
 const staticUrls = [
   '/',
   '/index.html',
-  '/css/style.min.css?v=20',
+  '/css/style.min.css?v=21',
   '/js/app.js',
   '/js/auth.js',
   '/js/api.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/maskable-192.png',
+  '/icons/maskable-512.png',
+  '/icons/apple-touch-icon-180.png'
 ];
 
 self.addEventListener('install', event => {
